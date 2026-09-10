@@ -14,6 +14,8 @@ cd peqnp
 bun install --frozen-lockfile --ignore-scripts
 cargo run --locked --release -- experiment artifacts/calibration.json
 cargo run --locked --release -- transfer artifacts/clue-transfer.json
+cargo run --locked --release -- indexed artifacts/indexed-transfer.json
+cargo run --locked --release -- implication artifacts/implication-calibration.json
 bun run check
 ```
 
@@ -25,7 +27,9 @@ The experiment writes [calibration.json](artifacts/calibration.json). Eight prog
 
 It recovers known unit propagation and rejects a planted claim that this rule alone decides every CNF. The [calibration report](experiments/unit-propagation.md) defines the language, domain, and informal soundness proof.
 
-The [clue-transfer experiment](experiments/clue-transfer.md) mines four sound rule instances from six tiny formulas and freezes them before testing 122 larger cases. They produce 127 clues and reduce search nodes from 738 to 620, but total measured work grows from 424,997 to 1,676,645 because matching is expensive. Every case is solved correctly; this implementation is slower by the declared event metric on every case. These are finite research results, not a polynomial SAT solver. `bun run check` checks Rust and ledger behavior and reproduces both artifacts byte for byte.
+The [clue-transfer experiment](experiments/clue-transfer.md) mines four sound rule instances from six tiny formulas and freezes them before testing 122 larger cases. They produce 127 clues and reduce search nodes from 738 to 620, but total measured work grows from 424,997 to 1,676,645 because matching is expensive. Every case is solved correctly; this implementation is slower by the declared event metric on every case.
+
+The [indexed-transfer experiment](experiments/indexed-transfer.md) replaces pair enumeration with a sorted index that derives the same units in the same order. On 160 fresh cases it cuts preprocessing from 11,235,212 to 1,048,871 events and finishes four cases the generic matcher could not, yet still costs more than no preprocessing on every case: 1,452,179 events against a 520,161 baseline. The [implication-calibration experiment](experiments/implication-calibration.md) builds the standard 2-SAT implication graph instead. On 120 two-variable-clause cases it recovers all 173 forced literals where the two-clause library finds 63, including every long-chain case the library cannot start; its linear-time decision with an explicit certificate still costs more declared events than the toy solver on 102 of 120 cases. These are finite research results, not a polynomial SAT solver. `bun run check` checks Rust and ledger behavior and reproduces all four artifacts byte for byte.
 
 Restore the canonical [Oh](https://github.com/hraness/oh) research ledger after cloning:
 
@@ -40,7 +44,11 @@ The Git-versioned [ledger](ledger/manifest.json) is the source of truth for rese
 
 Rust implements a small typed Lisp for candidate transformations. The [proposal](docs/research-proposal.md) extends this into parallel search across rule families, counterexample-guided refinement, and eventual convergence on precise theorem statements. Evolutionary search and model-driven populations are planned; their value must be measured against simpler search under equal budgets.
 
-The [knowledge-and-complexity framework](docs/knowledge-and-complexity.md) investigates clues from solved examples, reusable knowledge bases, and information about opponents. The [transfer theory](docs/clue-transfer-theory.md) connects this to forced values, local explanations, and small branching sets. Next, test cheaper rule matching and inference that composes longer implications, counting acquisition, representation, and residual solving separately.
+The [knowledge-and-complexity framework](docs/knowledge-and-complexity.md) investigates clues from solved examples, reusable knowledge bases, and information about opponents. The [transfer theory](docs/clue-transfer-theory.md) connects this to forced values, local explanations, and small branching sets. Three completed experiments now separate three costs: acquiring a rule library, reading its clues through a representation, and the search that remains. Cheaper reading and complete coverage were each achieved; neither repaid its cost on formulas whose residual search was already small. Next, measure representations a solver builds anyway, on formulas whose residual search is expensive.
+
+### Interfaces and free lunches
+
+Michael Levin's [Ingressing Minds](https://doi.org/10.3390/philosophies11050161) describes bodies, machines, and algorithms as interfaces into a space of patterns, where a good interface returns more than was put in: two angles of a triangle determine the third, and one transistor makes every logic gate available without evolving each truth table. In this project's terms the free lunch is entailment, and its price is the cost of the representation that exposes it. A backbone literal is fixed by its formula, yet reading it from an arbitrary CNF is coNP-hard, while reading it from a 2-CNF implication graph takes linear time. We therefore score a representation by its interface delta: baseline work minus build, read, and residual work under one declared cost model. Pair matching scored negative on all 122 pilot cases, the sorted index on all 160 fresh cases, and the implication graph, which reads every forced literal, on 102 of 120 decisions. Levin's framework guides which interfaces to try and how to measure them; it cannot appear in a proof, whose cost model must be closed. The [full connection](docs/knowledge-and-complexity.md#interfaces-free-lunches-and-the-cost-of-reading-a-clue) gives the definition and the resulting strategy changes.
 
 ## Why P = NP would matter
 

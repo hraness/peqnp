@@ -87,7 +87,7 @@ Use a portfolio of independent conceptual families. Keep the ultimate target 3-S
 | Search family | Candidates to generate | Required bridge toward the target |
 | --- | --- | --- |
 | Constraint inference | Sound propagation and reduction rules | Why enough progress is always available and cheap |
-| Representation and decomposition | Encodings, summaries, component splits, compressed states | Why construction and intermediate size stay polynomial on arbitrary inputs |
+| Representation and decomposition | Encodings, summaries, component splits, compressed states, indexes, implication graphs | Why construction and intermediate size stay polynomial on arbitrary inputs, and a measured positive [interface delta](knowledge-and-complexity.md#interfaces-free-lunches-and-the-cost-of-reading-a-clue) on fresh cases |
 | Invariants and potential functions | Progress measures and amortized analyses | A bound on total work, including all branches and data growth |
 | Proof construction | Uniform generators of checkable UNSAT derivations or useful auxiliary definitions | Polynomial construction time and coverage of all UNSAT instances, combined with a complete decision procedure |
 
@@ -168,5 +168,7 @@ The central question is: **Can we always derive enough sound constraints to deci
 ## Side information and collaboration
 
 A complementary paper direction studies whether clues from solved instances, domain knowledge, or an opponent model can reduce the choices a deterministic procedure must explore. The source, reliability, size, and acquisition cost of that information are part of the model. The [knowledge and complexity framework](knowledge-and-complexity.md) distinguishes this hypothesis from a proof that arbitrary SAT has a uniform polynomial algorithm.
+
+Michael Levin's [Ingressing Minds](https://doi.org/10.3390/philosophies11050161) supplies a second framing: physical systems and algorithms as interfaces into a space of patterns, with the free lunch of an interface measured as the delta between effort put in and competency obtained. The [knowledge and complexity framework](knowledge-and-complexity.md#interfaces-free-lunches-and-the-cost-of-reading-a-clue) translates that delta into a cost-model quantity for representations and explains why it can guide search but not appear in a proof.
 
 [Album Shen](https://www.linkedin.com/in/albumshen) contributed the motivating taxonomy of human, machine, guessing, chance, and adversarial problems and discussion of clue-driven search. Ben Guo initiated the research program and proposed investigating reusable knowledge bases. These credits describe conceptual contributions; the formalizations and experimental conclusions carry their own evidence.

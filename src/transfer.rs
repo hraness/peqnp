@@ -24,7 +24,7 @@ pub struct Work {
 }
 
 #[derive(Clone, Copy)]
-enum Event {
+pub(crate) enum Event {
     Formula,
     ClauseRead,
     LiteralRead,
@@ -43,19 +43,19 @@ pub enum Failure {
     InvalidInput,
 }
 
-struct Meter {
+pub(crate) struct Meter {
     limit: u64,
-    work: Work,
+    pub(crate) work: Work,
 }
 
 impl Meter {
-    fn new(limit: u64) -> Self {
+    pub(crate) fn new(limit: u64) -> Self {
         Self {
             limit,
             work: Work::default(),
         }
     }
-    fn tick(&mut self, event: Event) -> Result<(), Failure> {
+    pub(crate) fn tick(&mut self, event: Event) -> Result<(), Failure> {
         let next = self
             .work
             .work_units
@@ -82,7 +82,7 @@ impl Meter {
 }
 
 impl Work {
-    fn json(&self) -> String {
+    pub(crate) fn json(&self) -> String {
         format!(
             concat!(
                 "{{\"work_units\":{},\"formula_checks\":{},\"clause_reads\":{},",
@@ -103,7 +103,7 @@ impl Work {
     }
 }
 
-fn validate(input: &Cnf, variables: u32, meter: &mut Meter) -> Result<(), Failure> {
+pub(crate) fn validate(input: &Cnf, variables: u32, meter: &mut Meter) -> Result<(), Failure> {
     if variables > 12 {
         return Err(Failure::InvalidInput);
     }
@@ -119,7 +119,7 @@ fn validate(input: &Cnf, variables: u32, meter: &mut Meter) -> Result<(), Failur
     Ok(())
 }
 
-fn copy(input: &Cnf, meter: &mut Meter) -> Result<Cnf, Failure> {
+pub(crate) fn copy(input: &Cnf, meter: &mut Meter) -> Result<Cnf, Failure> {
     let mut result = Vec::new();
     for clause in input {
         meter.tick(Event::ClauseRead)?;
@@ -178,7 +178,7 @@ pub struct Rule {
 }
 
 impl Rule {
-    fn json(&self) -> String {
+    pub(crate) fn json(&self) -> String {
         format!(
             "{{\"premises\":{:?},\"conclusion\":{}}}",
             self.premises, self.conclusion
@@ -325,7 +325,7 @@ fn match_rule(
     }
 }
 
-fn preprocess(
+pub(crate) fn preprocess(
     input: &Cnf,
     variables: u32,
     library: &FrozenLibrary,
@@ -488,7 +488,7 @@ impl Arm {
             .checked_add(self.residual.work_units)
             .expect("shared budget bounds sum")
     }
-    fn json(&self) -> String {
+    pub(crate) fn json(&self) -> String {
         format!("{{\"outcome\":\"{}\",\"preprocessing\":{},\"residual\":{},\"total_work_units\":{},\"derived_units\":{:?}}}",
             self.outcome.name(), self.preprocessing.json(), self.residual.json(), self.total_work(), self.derived_units)
     }

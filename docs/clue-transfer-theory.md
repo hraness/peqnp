@@ -90,7 +90,7 @@ A stronger future question is whether broader bounded explanations expose a chea
 
 ## A future control with arbitrarily long binary explanations
 
-The following deduction is outside the frozen 122-case protocol. For k≥2 and distinct variables, set
+The following deduction is outside the frozen 122-case protocol. It was later tested under the [implication-calibration protocol](../experiments/implication-protocol.md); the [completed report](../experiments/implication-calibration.md) confirms that the two-clause library derives nothing on any F_k case while the implication graph recovers the forced literal on all of them. For k≥2 and distinct variables, set
 
 \[
 F_k=(x\lor y_1)\land\bigwedge_{i=1}^{k-1}(\neg y_i\lor y_{i+1})\land(\neg y_k\lor x).

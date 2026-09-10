@@ -125,10 +125,7 @@ fn check_arm(input: &Cnf, n: u32, arm: &FragmentArm, oracle: bool, backbone: Opt
     let found: Vec<i32> = arm.clues.iter().map(|clue| clue.literal).collect();
     assert_eq!(found, arm.derived_units);
     for clue in &arm.clues {
-        assert!(
-            fragment::check_clue(input, n, clue).unwrap().0,
-            "{input:?} {clue:?}"
-        );
+        assert!(fragment::check_clue(input, n, clue).unwrap().0, "{input:?}");
         assert_eq!(clue.path.nodes.first(), Some(&-clue.literal));
         assert_eq!(clue.path.nodes.last(), Some(&clue.literal));
         assert_eq!(clue.path.nodes.len(), clue.path.clauses.len() + 1);
@@ -139,7 +136,7 @@ fn check_arm(input: &Cnf, n: u32, arm: &FragmentArm, oracle: bool, backbone: Opt
         let mut nodes = clue.path.nodes.clone();
         nodes.sort_unstable();
         nodes.dedup();
-        assert_eq!(nodes.len(), clue.path.nodes.len(), "{input:?} {clue:?}");
+        assert_eq!(nodes.len(), clue.path.nodes.len(), "{input:?}");
     }
     if matches!(certificate, Certificate::Sat(_)) {
         assert!(arm.residual.work_units > 0);
@@ -157,7 +154,7 @@ fn check_arm(input: &Cnf, n: u32, arm: &FragmentArm, oracle: bool, backbone: Opt
     }
     if let Some(backbone) = backbone {
         for unit in &arm.derived_units {
-            assert!(backbone.contains(unit), "{input:?} {unit}");
+            assert!(backbone.contains(unit), "{input:?}");
         }
     }
     let mut total = 0;
@@ -342,7 +339,7 @@ fn several_forced_literals_share_one_explanation() {
     assert_eq!(settled.arm.derived_units, vec![1, 5, 6, 7]);
     let stats = settled.stats.unwrap();
     // The duals of 5, 6 and 7 inherit the recorded path of -1.
-    assert!(stats.inherited >= 3, "{stats:?}");
+    assert!(stats.inherited >= 3);
     for clue in &settled.arm.clues[1..] {
         assert!(clue.path.nodes.contains(&-1) && clue.path.nodes.contains(&1));
     }

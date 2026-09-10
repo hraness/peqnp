@@ -34,11 +34,28 @@ An alternative result must be a repository-relative JSON file:
 bun scripts/oh-ledger.mjs record experiments/calibration.json
 ```
 
-The adapter accepts only the bounded `unit-propagation-calibration-v1` envelope. It validates the declared two-variable corpus, eight distinct candidate programs, coverage counters, selected survivor, rejected false-completeness control, and explicit absence of a kernel-checked proof. It records the exact file SHA-256, JSON payload, source-file hashes observed at ingestion, and a `bounded-tested` assertion with supporting evidence.
+The `record` command accepts only the bounded `unit-propagation-calibration-v1` envelope. It validates the declared two-variable corpus, eight distinct candidate programs, coverage counters, selected survivor, rejected false-completeness control, and explicit absence of a kernel-checked proof. It records the exact file SHA-256, JSON payload, source-file hashes observed at ingestion, and a `bounded-tested` assertion with supporting evidence.
 
 Validation of a report's shape does not independently reproduce its observations. Source hashes describe the files at ingestion; they do not attest that those files generated the supplied report. The experiment and independent checker own that evidence. The ledger neither upgrades a finite test to a general proof nor interprets an informal argument as a formal proof receipt.
 
 Each report/source identity gets an additive activity, assertion, and evidence record. Reingesting identical bytes at the same relative path with identical source hashes is a no-op. The content edition retains its first path; copying identical bytes to another path causes an explicit conflict, not a provenance rewrite. A later source snapshot produces a distinct observation; it does not rewrite the old result.
+
+## Record a clue-transfer comparison
+
+After producing and independently reviewing the [clue-transfer report](../artifacts/clue-transfer.json), record it in the same local ledger:
+
+```sh
+bun run oh:record:transfer
+bun run oh:verify
+```
+
+For an alternative repository-relative report path, use `bun scripts/oh-ledger.mjs record-transfer relative-report.json`. Initialization remains an explicit prerequisite.
+
+This command accepts the fixed `clue-transfer-v1` protocol: 24 implication candidates on the six training pairs, four frozen rule records, and all 122 named evaluation cases with at most 12 declared variables. It checks the complete two-variable mining conclusions, the declared one-million-event budget for each arm, valid finite inputs and outcomes, event-category sums, reference-coverage counters, and aggregate/family totals recomputed from each observation. It also verifies the report's protocol digest against the checked-in protocol bytes. Shape and arithmetic checks do not establish that the submitted inputs were generated as declared or that measured costs and labels were produced by the reported source; the independent experiment validation owns those claims.
+
+The first ingestion adds five records: a comparison proposition, an exact report edition, a source-observation activity, a `bounded-observation` assertion, and evidence. The evidence includes the canonical SHA-256 of the frozen rule array, numeric summary, acquisition cost, and acquisition-plus-online cost. The proposition describes the finite comparison and asserts no performance improvement. Negative results and resource exhaustion retain their reported meaning; no formal proof is accepted. Repeated ingestion follows the same identity and conflict rules as the calibration command.
+
+This workflow only writes `.oh/research.sqlite`. The live database and operation history remain local and ignored; no export or public ledger snapshot is part of these commands.
 
 ## Inspect the record
 
@@ -78,4 +95,4 @@ Remote sync, imports, tombstones, hosted embeddings, and publishing operation bu
 bun run check:oh
 ```
 
-Tests cover non-creating reads, repeatable bootstrap, atomic rejection of conflicting records, bounded-report validation, idempotent ingestion, proof-status preservation, and path boundaries. Synthetic test reports stay in disposable test databases and are never research evidence.
+Tests cover non-creating reads, repeatable bootstrap, atomic rejection of conflicting records, both bounded report contracts, summary and cost consistency, idempotent ingestion, proof-status preservation, protocol identity, and path boundaries. Test databases are disposable and never constitute research evidence.

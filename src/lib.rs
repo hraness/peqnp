@@ -6,6 +6,8 @@
 
 use std::fmt;
 
+pub mod transfer;
+
 pub type Cnf = Vec<Vec<i32>>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -434,6 +436,23 @@ pub fn false_completeness_example() -> Cnf {
 }
 
 pub fn result_json(records: &[CandidateResult]) -> Result<String, String> {
+    let expected = grammar();
+    if records.len() != expected.len()
+        || expected.iter().any(|program| {
+            records
+                .iter()
+                .filter(|record| &record.program == program)
+                .count()
+                != 1
+        })
+        || records.iter().any(|record| {
+            record.checked_formulas != 65_536
+                || record.preservation_passes > record.checked_formulas
+                || record.progress_passes > record.checked_formulas
+        })
+    {
+        return Err("expected exact calibration grammar and coverage counts".into());
+    }
     let survivors: Vec<_> = records
         .iter()
         .filter(|r| r.preservation_passes == 65_536 && r.progress_passes == 65_536)

@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,18 +38,28 @@ run("cargo", ["clippy", "--locked", "--all-targets", "--", "-D", "warnings"]);
 run("cargo", ["test", "--locked"]);
 run("bun", ["run", "check:oh"]);
 
+const transfer = JSON.parse(readFileSync(resolve(root, "artifacts/clue-transfer.json"), "utf8"));
+const protocolHash = createHash("sha256")
+  .update(readFileSync(resolve(root, "experiments/clue-transfer-protocol.md")))
+  .digest("hex");
+if (transfer.protocol_sha256 !== protocolHash) {
+  throw new Error("Clue-transfer report does not identify the checked-in protocol");
+}
+
 const scratchRoot = resolve(root, ".work");
 mkdirSync(scratchRoot, { recursive: true });
 const scratch = mkdtempSync(resolve(scratchRoot, "replay-"));
 try {
-  const report = resolve(scratch, "calibration.json");
-  run("cargo", ["run", "--locked", "--release", "--", "experiment", report]);
-  if (!readFileSync(report).equals(readFileSync(resolve(root, "artifacts/calibration.json")))) {
-    throw new Error("Calibration replay differs from the reviewed artifact");
+  for (const [command, filename] of [["experiment", "calibration.json"], ["transfer", "clue-transfer.json"]]) {
+    const report = resolve(scratch, filename);
+    run("cargo", ["run", "--locked", "--release", "--", command, report]);
+    if (!readFileSync(report).equals(readFileSync(resolve(root, "artifacts", filename)))) {
+      throw new Error(`${filename} replay differs from the reviewed artifact`);
+    }
   }
 } finally {
   rmSync(scratch, { recursive: true, force: true });
 }
 run("git", ["diff", "--check"]);
 run("git", ["diff", "--cached", "--check"]);
-console.log("All checks passed; calibration reproduced byte for byte.");
+console.log("All checks passed; both experiments reproduced byte for byte.");

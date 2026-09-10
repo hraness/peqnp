@@ -6,6 +6,7 @@
 
 use std::fmt;
 
+pub mod fragment;
 pub mod implication;
 pub mod indexed;
 pub mod transfer;

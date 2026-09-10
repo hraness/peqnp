@@ -9,6 +9,7 @@ import {
   researchRecordsV2, IMPLICATION_EDITION_KEY, IMPLICATION_EVIDENCE_KEY, IMPLICATION_REPORT_SHA256,
   INDEXED_EDITION_KEY, INDEXED_EVIDENCE_KEY, INDEXED_REPORT_SHA256,
 } from "./research-records-v2.mjs";
+import { researchRecordsV3, FRAGMENT_EDITION_KEY, FRAGMENT_EVIDENCE_KEY, FRAGMENT_REPORT_SHA256 } from "./research-records-v3.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -47,12 +48,29 @@ export function recordResearchV2(root) {
   } finally { oh.store.close(); }
 }
 
+export function recordResearchV3(root) {
+  const oh = openLedger(root);
+  try {
+    const verified = oh.verify();
+    if (verified.operations > 1000) throw new Error("Research admission exceeds the bounded history; inspect before extending.");
+    admitPublicHistory(root, oh.store.exportOperations(0, 1000), { requireCurrentDocuments: false });
+    for (const key of ["assertion:interface-delta-v1", "inquiry:interface-delta-on-expensive-residuals-v3"]) {
+      if (!oh.get(key)) throw new Error("The reviewed v2 research records must already exist.");
+    }
+    if (oh.get(FRAGMENT_EDITION_KEY)?.value.sha256 !== FRAGMENT_REPORT_SHA256 || oh.get(FRAGMENT_EVIDENCE_KEY)?.value.reportSha256 !== FRAGMENT_REPORT_SHA256) {
+      throw new Error("The exact reviewed fragment-interface edition and evidence must already exist.");
+    }
+    return commitAdditive(oh, researchRecordsV3(), "reviewed-research-v3", verified.head);
+  } finally { oh.store.close(); }
+}
+
 if (import.meta.main) {
   try {
     const args = process.argv.slice(2);
-    if (args.length !== 1 || !["research", "research-v2", "docs"].includes(args[0])) throw new Error("Usage: bun scripts/oh-research.mjs <research|research-v2|docs>");
+    if (args.length !== 1 || !["research", "research-v2", "research-v3", "docs"].includes(args[0])) throw new Error("Usage: bun scripts/oh-research.mjs <research|research-v2|research-v3|docs>");
     const result = args[0] === "research" ? recordResearch(repositoryRoot)
-      : args[0] === "research-v2" ? recordResearchV2(repositoryRoot) : recordDocuments(repositoryRoot);
+      : args[0] === "research-v2" ? recordResearchV2(repositoryRoot)
+      : args[0] === "research-v3" ? recordResearchV3(repositoryRoot) : recordDocuments(repositoryRoot);
     process.stdout.write(canonicalJson(result) + "\n");
   } catch (error) { process.stderr.write(String(error.message ?? error) + "\n"); process.exitCode = 1; }
 }

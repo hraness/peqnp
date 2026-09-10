@@ -1,9 +1,10 @@
 import { canonicalJson, canonicalSha256 } from "@hraness/oh";
 import { readReport, seedRecords } from "./oh-ledger.mjs";
 import { experimentById, experimentByPath } from "./oh-experiments.mjs";
-import { documentRecordsForSchema, documentRecordsV2, DOCUMENT_PATHS, DOCUMENT_REGISTRY_PREFIX, readDocument } from "./oh-documents.mjs";
+import { documentRecordsForSchema, documentRecordsV3, DOCUMENT_PATHS, DOCUMENT_REGISTRY_PREFIX, readDocument } from "./oh-documents.mjs";
 import { researchRecords } from "./research-records.mjs";
 import { researchRecordsV2 } from "./research-records-v2.mjs";
+import { researchRecordsV3 } from "./research-records-v3.mjs";
 
 function sourceIdentity(source) {
   const meaning = "Source bytes observed at ingestion; not an attestation that these bytes produced the supplied result.";
@@ -42,6 +43,7 @@ export function admitPublicHistory(root, operations, { requireCurrentDocuments =
   add(seedRecords());
   add(researchRecords());
   add(researchRecordsV2());
+  add(researchRecordsV3());
   for (const activity of actual.values()) {
     if (activity.kind !== "activity") continue;
     const experiment = experimentById(activity.value.experiment);
@@ -73,7 +75,7 @@ export function admitPublicHistory(root, operations, { requireCurrentDocuments =
   for (const seed of seedRecords()) if (actual.get(seed.key)?.recordSha256 !== seed.recordSha256) throw new Error("Required project bootstrap record is missing.");
   if (requireCurrentDocuments) {
     if (!latestRegistry) throw new Error("Canonical document registry missing; run oh:record:docs after narrative review.");
-    const current = documentRecordsV2(DOCUMENT_PATHS.map(path => readDocument(root, path)), latestRegistry.value.previousRegistry).at(-1);
+    const current = documentRecordsV3(DOCUMENT_PATHS.map(path => readDocument(root, path)), latestRegistry.value.previousRegistry).at(-1);
     if (canonicalJson(latestRegistry) !== canonicalJson(current)) throw new Error("Markdown differs from the latest canonical document editions; review and record the change explicitly.");
     for (const [path, edition] of currentReports) {
       const experiment = experimentByPath(path);

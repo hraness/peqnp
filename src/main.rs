@@ -5,21 +5,29 @@ fn run() -> Result<(), String> {
     let command = args.first().map(String::as_str);
     if !matches!(
         command,
-        Some("experiment" | "transfer" | "indexed" | "implication")
+        Some("experiment" | "transfer" | "indexed" | "implication" | "fragment")
     ) || args.len() > 2
     {
-        return Err("usage: peqnp <experiment|transfer|indexed|implication> [output.json]".into());
+        return Err(
+            "usage: peqnp <experiment|transfer|indexed|implication|fragment> [output.json]".into(),
+        );
     }
     let path = PathBuf::from(args.get(1).map(String::as_str).unwrap_or(match command {
         Some("transfer") => "artifacts/clue-transfer.json",
         Some("indexed") => "artifacts/indexed-transfer.json",
         Some("implication") => "artifacts/implication-calibration.json",
+        Some("fragment") => "artifacts/fragment-interface.json",
         _ => "artifacts/calibration.json",
     }));
     if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
-    let json = if command == Some("indexed") {
+    let json = if command == Some("fragment") {
+        let result =
+            peqnp::fragment::experiment().map_err(|e| format!("fragment failed: {e:?}"))?;
+        println!("{}", peqnp::fragment::summary_line(&result));
+        peqnp::fragment::json(&result)
+    } else if command == Some("indexed") {
         let result = peqnp::indexed::experiment().map_err(|e| format!("indexed failed: {e:?}"))?;
         println!(
             "Compiled {} rule instances into {} schema; checked {} fresh cases. Baseline: {}; generic: {}; indexed: {}.",

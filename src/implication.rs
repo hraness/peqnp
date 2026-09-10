@@ -65,7 +65,7 @@ impl GraphArm {
 }
 
 // Phase snapshots are monotone components of the same checked meter.
-fn difference(after: &Work, before: &Work) -> Work {
+pub(crate) fn difference(after: &Work, before: &Work) -> Work {
     Work {
         work_units: after.work_units - before.work_units,
         formula_checks: after.formula_checks - before.formula_checks,
@@ -80,7 +80,7 @@ fn difference(after: &Work, before: &Work) -> Work {
     }
 }
 
-fn ticks(m: &mut Meter, event: Event, count: usize) -> Result<(), Failure> {
+pub(crate) fn ticks(m: &mut Meter, event: Event, count: usize) -> Result<(), Failure> {
     for _ in 0..count {
         m.tick(event)?;
     }
@@ -104,22 +104,28 @@ struct Edge {
     to: usize,
     clause: usize,
 }
-struct Graph {
+pub(crate) struct Graph {
     forward: Vec<Vec<Edge>>,
     reverse: Vec<Vec<Edge>>,
     empty: Option<usize>,
 }
 
-fn validate_binary(input: &Cnf, n: u32, m: &mut Meter) -> Result<(), Failure> {
+/// Whole-formula validation with a declared width bound: the 2-CNF arms use
+/// width two; the fragment arm admits width three and reads every clause.
+fn validate_width(input: &Cnf, n: u32, max_width: usize, m: &mut Meter) -> Result<(), Failure> {
     m.tick(Event::Formula)?;
     transfer::validate(input, n, m)?;
     for clause in input {
         m.tick(Event::ClauseRead)?;
-        if clause.len() > 2 {
+        if clause.len() > max_width {
             return Err(Failure::InvalidInput);
         }
     }
     Ok(())
+}
+
+fn validate_binary(input: &Cnf, n: u32, m: &mut Meter) -> Result<(), Failure> {
+    validate_width(input, n, 2, m)
 }
 
 fn edge(
@@ -140,6 +146,18 @@ fn edge(
 
 fn build(input: &Cnf, n: u32, m: &mut Meter) -> Result<Graph, Failure> {
     validate_binary(input, n, m)?;
+    construct(input, n, m)
+}
+
+/// The implication graph of the binary fragment of a width-at-most-three
+/// formula. Every clause is read once; edges keep their original clause
+/// indices; ternary clauses contribute no edge.
+pub(crate) fn build_fragment(input: &Cnf, n: u32, m: &mut Meter) -> Result<Graph, Failure> {
+    validate_width(input, n, 3, m)?;
+    construct(input, n, m)
+}
+
+fn construct(input: &Cnf, n: u32, m: &mut Meter) -> Result<Graph, Failure> {
     ticks(m, Event::ClauseWrite, 2)?;
     let mut graph = Graph {
         forward: Vec::new(),
@@ -171,6 +189,7 @@ fn build(input: &Cnf, n: u32, m: &mut Meter) -> Result<Graph, Failure> {
                 edge(&mut graph, node(-a), node(*b), index, m)?;
                 edge(&mut graph, node(-b), node(*a), index, m)?;
             }
+            [_, _, _] => (),
             _ => unreachable!("validated clause width"),
         }
     }
@@ -183,7 +202,7 @@ fn array<T: Copy>(len: usize, value: T, m: &mut Meter) -> Result<Vec<T>, Failure
     Ok(vec![value; len])
 }
 
-fn components(g: &Graph, m: &mut Meter) -> Result<Vec<usize>, Failure> {
+pub(crate) fn components(g: &Graph, m: &mut Meter) -> Result<Vec<usize>, Failure> {
     let size = g.forward.len();
     let mut seen = array(size, false, m)?;
     ticks(m, Event::ClauseWrite, 2)?;
@@ -328,7 +347,7 @@ fn path(g: &Graph, from: usize, to: usize, m: &mut Meter) -> Result<Option<Path>
     Ok(Some(Path { nodes, clauses }))
 }
 
-fn decision_certificate(
+pub(crate) fn decision_certificate(
     g: &Graph,
     component: &[usize],
     n: u32,
@@ -362,7 +381,7 @@ fn decision_certificate(
     Ok(Certificate::Sat(values))
 }
 
-fn extract(g: &Graph, n: u32, m: &mut Meter) -> Result<Vec<Clue>, Failure> {
+pub(crate) fn extract(g: &Graph, n: u32, m: &mut Meter) -> Result<Vec<Clue>, Failure> {
     m.tick(Event::ClauseWrite)?;
     let mut clues = Vec::new();
     for v in 1..=n as i32 {
@@ -447,8 +466,17 @@ pub struct Reference {
 
 /// Full direct evaluation, independent of implication/SCC representation.
 pub fn reference(input: &Cnf, n: u32) -> Result<Reference, Failure> {
+    enumerate(input, n, 2)
+}
+
+/// The same direct evaluator admitting clauses of width at most three.
+pub(crate) fn reference_wide(input: &Cnf, n: u32) -> Result<Reference, Failure> {
+    enumerate(input, n, 3)
+}
+
+fn enumerate(input: &Cnf, n: u32, max_width: usize) -> Result<Reference, Failure> {
     let mut m = Meter::new(u64::MAX);
-    validate_binary(input, n, &mut m)?;
+    validate_width(input, n, max_width, &mut m)?;
     let mut all_true = array(n as usize, true, &mut m)?;
     let mut all_false = array(n as usize, true, &mut m)?;
     let mut count = 0_u64;
@@ -561,8 +589,29 @@ pub fn check_certificate(
     n: u32,
     certificate: &Certificate,
 ) -> Result<(bool, Work), Failure> {
+    certificate_check(input, n, certificate, 2)
+}
+
+/// The same raw checker on a width-at-most-three formula. A SAT certificate
+/// is an assignment of the binary fragment, so only clauses of width at most
+/// two are required to be satisfied; path certificates cite clauses by their
+/// original index and a cited ternary clause is rejected.
+pub(crate) fn check_fragment_certificate(
+    input: &Cnf,
+    n: u32,
+    certificate: &Certificate,
+) -> Result<(bool, Work), Failure> {
+    certificate_check(input, n, certificate, 3)
+}
+
+fn certificate_check(
+    input: &Cnf,
+    n: u32,
+    certificate: &Certificate,
+    max_width: usize,
+) -> Result<(bool, Work), Failure> {
     let mut m = Meter::new(u64::MAX);
-    validate_binary(input, n, &mut m)?;
+    validate_width(input, n, max_width, &mut m)?;
     let valid = match certificate {
         Certificate::Sat(values) => {
             if values.len() != n as usize {
@@ -572,6 +621,9 @@ pub fn check_certificate(
                 m.tick(Event::Formula)?;
                 for clause in input {
                     m.tick(Event::ClauseRead)?;
+                    if clause.len() > 2 {
+                        continue;
+                    }
                     let mut sat = false;
                     for &lit in clause {
                         ticks(&mut m, Event::LiteralRead, 2)?;
@@ -621,8 +673,22 @@ pub fn check_certificate(
 }
 
 pub fn check_clue(input: &Cnf, n: u32, clue: &Clue) -> Result<(bool, Work), Failure> {
+    clue_check(input, n, clue, 2)
+}
+
+/// The raw clue checker on a width-at-most-three formula; the cited clauses
+/// must be units or binary clauses of the input at their original indices.
+pub(crate) fn check_fragment_clue(
+    input: &Cnf,
+    n: u32,
+    clue: &Clue,
+) -> Result<(bool, Work), Failure> {
+    clue_check(input, n, clue, 3)
+}
+
+fn clue_check(input: &Cnf, n: u32, clue: &Clue, max_width: usize) -> Result<(bool, Work), Failure> {
     let mut m = Meter::new(u64::MAX);
-    validate_binary(input, n, &mut m)?;
+    validate_width(input, n, max_width, &mut m)?;
     if clue.literal == 0 || clue.literal == i32::MIN || clue.literal.unsigned_abs() > n {
         return Ok((false, m.work));
     }
@@ -707,7 +773,7 @@ fn sign_name(sign: i32) -> &'static str {
 }
 
 /// `F_k` over x=1 and y_i=i+1; the broken variant drops link i=floor(k/2).
-fn chain(k: u32, broken: bool) -> Cnf {
+pub(crate) fn chain(k: u32, broken: bool) -> Cnf {
     let y = |i: u32| (i + 1) as i32;
     let mut clauses = vec![vec![1, y(1)]];
     for i in 1..k {
@@ -722,7 +788,7 @@ fn chain(k: u32, broken: bool) -> Cnf {
 
 /// Negate every occurrence of x for the negative sign; keep literal order in
 /// each clause; reverse the clause list for the reversed order.
-fn transformed(clauses: &Cnf, sign: i32, order: Order) -> Cnf {
+pub(crate) fn transformed(clauses: &Cnf, sign: i32, order: Order) -> Cnf {
     let mut result: Cnf = clauses
         .iter()
         .map(|clause| {
@@ -884,20 +950,20 @@ pub fn corpus() -> Vec<Case> {
 // ---------------------------------------------------------------------------
 // Experiment: reference, three arms, raw checkers, acceptance, summaries.
 
-fn add(total: &mut u64, amount: u64) -> Result<(), Failure> {
+pub(crate) fn add(total: &mut u64, amount: u64) -> Result<(), Failure> {
     *total = total.checked_add(amount).ok_or(Failure::CounterOverflow)?;
     Ok(())
 }
 
-fn increment(total: &mut u64) -> Result<(), Failure> {
+pub(crate) fn increment(total: &mut u64) -> Result<(), Failure> {
     add(total, 1)
 }
 
-fn count(len: usize) -> Result<u64, Failure> {
+pub(crate) fn count(len: usize) -> Result<u64, Failure> {
     u64::try_from(len).map_err(|_| Failure::CounterOverflow)
 }
 
-fn accumulate(total: &mut Work, part: &Work) -> Result<(), Failure> {
+pub(crate) fn accumulate(total: &mut Work, part: &Work) -> Result<(), Failure> {
     add(&mut total.work_units, part.work_units)?;
     add(&mut total.formula_checks, part.formula_checks)?;
     add(&mut total.clause_reads, part.clause_reads)?;
@@ -1426,7 +1492,7 @@ pub fn experiment() -> Result<Experiment, Failure> {
 // ---------------------------------------------------------------------------
 // Deterministic reporting. Formatting is outside every meter.
 
-fn quoted(value: &str) -> String {
+pub(crate) fn quoted(value: &str) -> String {
     let mut result = String::from("\"");
     for ch in value.chars() {
         match ch {
@@ -1445,11 +1511,11 @@ fn quoted(value: &str) -> String {
     result
 }
 
-fn optional<T: std::fmt::Display>(value: Option<T>) -> String {
+pub(crate) fn optional<T: std::fmt::Display>(value: Option<T>) -> String {
     value.map_or_else(|| "null".into(), |value| value.to_string())
 }
 
-fn outcome_name(outcome: &Outcome) -> &'static str {
+pub(crate) fn outcome_name(outcome: &Outcome) -> &'static str {
     match outcome {
         Outcome::Sat => "sat",
         Outcome::Unsat => "unsat",
@@ -1468,7 +1534,7 @@ impl BackboneStatus {
 }
 
 impl Path {
-    fn json(&self) -> String {
+    pub(crate) fn json(&self) -> String {
         format!(
             "{{\"nodes\":{:?},\"clauses\":{:?}}}",
             self.nodes, self.clauses
@@ -1477,7 +1543,7 @@ impl Path {
 }
 
 impl Certificate {
-    fn json(&self) -> String {
+    pub(crate) fn json(&self) -> String {
         match self {
             Self::Sat(values) => format!("{{\"kind\":\"sat\",\"values\":{values:?}}}"),
             Self::EmptyClause(index) => {

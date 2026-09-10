@@ -2,7 +2,8 @@ import { calibrationRecords, clueTransferRecords, validateCalibration } from "./
 import { validateClueTransfer } from "./oh-transfer-report.mjs";
 import { validateIndexedTransfer } from "./oh-indexed-report.mjs";
 import { validateImplicationCalibration } from "./oh-implication-report.mjs";
-import { implicationCalibrationRecords, indexedTransferRecords } from "./oh-experiment-records.mjs";
+import { validateFragmentInterface } from "./oh-fragment-report.mjs";
+import { fragmentInterfaceRecords, implicationCalibrationRecords, indexedTransferRecords } from "./oh-experiment-records.mjs";
 
 // This is an explicit publication allowlist, not a plugin or arbitrary-ingest
 // interface. Keep historical validators and constructors when adding a version.
@@ -37,6 +38,14 @@ export const EXPERIMENTS = [
     activityPrefix: "activity:implication-calibration-",
     validate: validateImplicationCalibration,
     records: implicationCalibrationRecords,
+  },
+  {
+    id: "fragment-interface-v1",
+    path: "artifacts/fragment-interface.json",
+    protocolPath: "experiments/fragment-interface-protocol.md",
+    activityPrefix: "activity:fragment-interface-",
+    validate: validateFragmentInterface,
+    records: fragmentInterfaceRecords,
   },
 ];
 

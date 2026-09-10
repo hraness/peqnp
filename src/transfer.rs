@@ -494,6 +494,15 @@ impl Arm {
     }
 }
 
+/// The common residual solver on an already-prepared formula: validation, one
+/// metered copy, then DPLL on the supplied meter. Every arm in the crate that
+/// runs a residual search runs exactly this routine.
+pub(crate) fn decide(input: &Cnf, variables: u32, meter: &mut Meter) -> Result<bool, Failure> {
+    validate(input, variables, meter)?;
+    let formula = copy(input, meter)?;
+    dpll(formula, meter)
+}
+
 /// Both modes call precisely the same DPLL routine. A transfer arm's matching
 /// work consumes its total budget before the common solver starts.
 pub fn solve(
@@ -528,11 +537,7 @@ pub fn solve(
         .ok_or(Failure::CounterOverflow)?;
     let mut residual = Meter::new(remaining);
     let source = processed.as_ref().unwrap_or(input);
-    let result = (|| {
-        validate(source, variables, &mut residual)?;
-        let formula = copy(source, &mut residual)?;
-        dpll(formula, &mut residual)
-    })();
+    let result = decide(source, variables, &mut residual);
     let outcome = match result {
         Ok(true) => Outcome::Sat,
         Ok(false) => Outcome::Unsat,
@@ -557,9 +562,10 @@ pub struct Case {
     pub density: Option<u32>,
 }
 
-struct Rng(u64);
+/// The xorshift64 transition shared by every corpus generator in the crate.
+pub(crate) struct Rng(pub(crate) u64);
 impl Rng {
-    fn next(&mut self) -> u64 {
+    pub(crate) fn next(&mut self) -> u64 {
         let mut x = self.0;
         x ^= x << 13;
         x ^= x >> 7;

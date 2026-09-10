@@ -1,0 +1,15 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "peqnp",
+      "dependencies": {
+        "@hraness/oh": "https://github.com/hraness/oh/releases/download/v0.4.3/hraness-oh-0.4.3.tgz",
+      },
+    },
+  },
+  "packages": {
+    "@hraness/oh": ["@hraness/oh@https://github.com/hraness/oh/releases/download/v0.4.3/hraness-oh-0.4.3.tgz", { "peerDependencies": { "@libsql/client": ">=0.17.4 <1", "@suss/datalog": "0.20.0", "@tobilu/qmd": "2.5.3" }, "optionalPeers": ["@libsql/client", "@suss/datalog", "@tobilu/qmd"], "bin": { "oh": "./dist/cli.js" } }, "sha512-nNSYgzPwUzlUeTagVZ1Ti/UV92KSs3Q2x2hWx8bp8mt7zFXxVc9EV+Toqp3dRTkiqnxNBVBWVhaTBjr0IM8ZNg=="],
+  }
+}

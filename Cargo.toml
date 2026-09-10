@@ -1,0 +1,11 @@
+[package]
+name = "peqnp"
+version = "0.1.0"
+edition = "2021"
+description = "A bounded, reproducible laboratory for candidate SAT transformations"
+license = "MIT"
+
+[profile.release]
+overflow-checks = true
+
+[dependencies]

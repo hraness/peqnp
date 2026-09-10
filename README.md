@@ -1,0 +1,60 @@
+# peqnp
+
+A research laboratory for exploring P = NP through small programs, counterexamples, and explicit proofs. Researchers can reproduce candidate SAT transformations and inspect exactly which claims survive independent checks.
+
+We seek one uniform deterministic algorithm for an NP-complete problem, with correctness on every input and a proved polynomial worst-case bound. [P versus NP remains unsolved](https://www.claymath.org/millennium/p-vs-np/).
+
+## Run the first experiment
+
+Requires Git, [Rust 1.97.1](https://www.rust-lang.org/tools/install) with Cargo, rustfmt and Clippy, and [Bun 1.3.14](https://bun.sh/docs/installation). Rustup uses the checked-in toolchain pin. Installation downloads the pinned Oh release; the experiment itself runs locally without a model or service account.
+
+```sh
+git clone https://github.com/hraness/peqnp.git
+cd peqnp
+bun install --frozen-lockfile --ignore-scripts
+cargo run --locked --release -- experiment artifacts/calibration.json
+bun run check
+```
+
+The experiment writes [calibration.json](artifacts/calibration.json). Eight programs are checked against all 65,536 canonical two-variable clause sets. Exactly one satisfies both satisfiability preservation and variable elimination:
+
+```lisp
+(with-unit input (rewrite input unit true true))
+```
+
+It recovers the known unit-propagation rule and rejects a planted claim that this rule alone decides every CNF. This validates a small enumerative experiment; it demonstrates neither novel mathematics nor a polynomial SAT solver. The [experiment report](experiments/unit-propagation.md) defines the language, domain, counterexamples, costs, and informal general soundness proof. `bun run check` runs Rust and ledger checks and reproduces the JSON byte for byte.
+
+To preserve the result in [Oh](https://github.com/hraness/oh):
+
+```sh
+bun run oh:init
+bun run oh:record
+bun run oh:verify
+```
+
+This creates an ignored local ledger at `.oh/research.sqlite`. Its records distinguish hypotheses and bounded observations; replay integrity does not establish mathematical truth. See [ledger operation](docs/oh.md).
+
+## Research approach
+
+Rust implements a small typed Lisp for candidate transformations. The [proposal](docs/research-proposal.md) extends this into parallel search across rule families, counterexample-guided refinement, and eventual convergence on precise theorem statements. Evolutionary search and model-driven populations are planned; their value must be measured against simpler search under equal budgets.
+
+The accompanying [knowledge-and-complexity framework](docs/knowledge-and-complexity.md) investigates clues from solved examples, reusable knowledge bases, and information about opponents. It counts acquisition, representation, and residual solving separately. The next experiment will test whether sound clues learned on tiny instances transfer to unseen families.
+
+## Why P = NP would matter
+
+A constructive solution with practical constants could transform constraint-based scheduling and design, and searching for polynomially bounded, efficiently checkable proofs. A polynomial bound alone need not be practical. [Cook's problem statement](https://www.claymath.org/wp-content/uploads/2022/06/pvsnp.pdf)
+
+Album Shen's taxonomy connects that question to human decisions and games. It also helps identify what computation can and cannot supply:
+
+| Examples | What must be specified |
+| --- | --- |
+| Parking, translation, choosing food | Available facts and a precise objective; finding the nearest known available space is already easy |
+| Wordle and other guessing games | Hidden information and permitted observations; a clue changes what is known |
+| Blackjack | Probabilities and revealed cards; faster computation does not reveal an unobserved random outcome |
+| Chess, MMORPGs, racing | Rules, horizon, opponent model, and observations; insider knowledge can change the strategic problem |
+
+These are motivating categories, not blanket NP-completeness claims. Each formal problem needs its own classification.
+
+Collaborators: Ben Guo initiated the project and knowledge-base direction. [Album Shen](https://www.linkedin.com/in/albumshen) contributed the problem taxonomy and clue-driven search discussions. These credits describe conceptual contributions; formal claims require their own evidence.
+
+[Agent instructions](AGENTS.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [MIT license](LICENSE)

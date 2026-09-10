@@ -1,0 +1,19 @@
+{
+  "schema_version":1,
+  "experiment":"unit-propagation-calibration-v1",
+  "status":"bounded-tested",
+  "grammar_size":8,
+  "corpus":{"variables":2,"canonical_clauses":16,"formulas":65536,"assignments_per_formula":4},
+  "candidates":[{"program":"(with-unit input (rewrite input unit false false))","preservation_passes":65536,"progress_passes":4096,"checked_formulas":65536,"first_counterexample":null,"work_units":11188224},
+    {"program":"(with-unit input (rewrite input unit false true))","preservation_passes":65536,"progress_passes":4096,"checked_formulas":65536,"first_counterexample":null,"work_units":10952704},
+    {"program":"(with-unit input (rewrite input unit true false))","preservation_passes":51200,"progress_passes":9216,"checked_formulas":65536,"first_counterexample":{"input":[[1], [-1]],"output":[[-1]],"input_sat":false,"output_sat":true},"work_units":10334208},
+    {"program":"(with-unit input (rewrite input unit true true))","preservation_passes":65536,"progress_passes":65536,"checked_formulas":65536,"first_counterexample":null,"work_units":10221568},
+    {"program":"(with-unit input (rewrite input (neg unit) false false))","preservation_passes":65536,"progress_passes":4096,"checked_formulas":65536,"first_counterexample":null,"work_units":11249664},
+    {"program":"(with-unit input (rewrite input (neg unit) false true))","preservation_passes":55296,"progress_passes":4416,"checked_formulas":65536,"first_counterexample":{"input":[[1]],"output":[[]],"input_sat":true,"output_sat":false},"work_units":10973184},
+    {"program":"(with-unit input (rewrite input (neg unit) true false))","preservation_passes":51200,"progress_passes":4096,"checked_formulas":65536,"first_counterexample":{"input":[[1], [-1]],"output":[[1]],"input_sat":false,"output_sat":true},"work_units":10559488},
+    {"program":"(with-unit input (rewrite input (neg unit) true true))","preservation_passes":55296,"progress_passes":65536,"checked_formulas":65536,"first_counterexample":{"input":[[1]],"output":[[]],"input_sat":true,"output_sat":false},"work_units":10405888}],
+  "selected_program":"(with-unit input (rewrite input unit true true))",
+  "false_completeness_claim":{"input":[[1, 2], [1, -2], [-1, 2], [-1, -2]],"satisfiable":false,"has_unit":false,"unchanged":true,"rejected":true},
+  "proof_status":"informal-general-argument-not-kernel-checked",
+  "limitations":["Finite two-variable canonical corpus only","Grammar has eight hand-scoped candidates","Work units are not a proved bit-complexity model","No P versus NP result","No evolutionary or agent-efficiency comparison yet"]
+}

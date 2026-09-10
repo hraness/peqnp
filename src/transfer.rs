@@ -41,6 +41,12 @@ pub enum Failure {
     Budget,
     CounterOverflow,
     InvalidInput,
+    /// The reference oracle refused a formula: its DIMACS digest and the
+    /// `oracle::OracleError` rendered as text. Never raised inside an arm.
+    Oracle {
+        dimacs_sha256: String,
+        reason: String,
+    },
 }
 
 pub(crate) struct Meter {

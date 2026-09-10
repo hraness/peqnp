@@ -10,6 +10,9 @@ pub mod extraction;
 pub mod fragment;
 pub mod implication;
 pub mod indexed;
+pub mod lrat;
+pub mod oracle;
+pub mod sha256;
 pub mod transfer;
 
 pub type Cnf = Vec<Vec<i32>>;

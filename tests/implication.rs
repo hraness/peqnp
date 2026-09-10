@@ -367,8 +367,8 @@ fn budget_exhaustion_at_each_phase_boundary_stays_unknown() {
         decision - 1,
     ] {
         let arm = analyze(&input, n, budget).unwrap();
-        assert_eq!(arm.decision, Outcome::Unknown, "budget {budget}");
-        assert!(arm.certificate.is_none(), "budget {budget}");
+        assert_eq!(arm.decision, Outcome::Unknown);
+        assert!(arm.certificate.is_none());
         assert_eq!(arm.backbone_status, BackboneStatus::Unknown);
         assert!(arm.clues.is_empty());
         assert_eq!(arm.total_work(), budget);
@@ -382,8 +382,8 @@ fn budget_exhaustion_at_each_phase_boundary_stays_unknown() {
     }
     for budget in [decision, decision + 1, total - 1] {
         let arm = analyze(&input, n, budget).unwrap();
-        assert_eq!(arm.decision, Outcome::Sat, "budget {budget}");
-        assert!(arm.certificate == full.certificate, "budget {budget}");
+        assert_eq!(arm.decision, Outcome::Sat);
+        assert!(arm.certificate == full.certificate);
         assert_eq!(arm.decision_work(), decision);
         assert_eq!(arm.backbone_status, BackboneStatus::Unknown);
         assert!(arm.clues.is_empty());

@@ -58,6 +58,15 @@ test("indexed report preserves the complete fresh corpus and rejects proof, prot
   const extra = report();
   extra.speedup_claim = true;
   expect(() => validateIndexedTransfer(extra)).toThrow("Unexpected indexed-transfer report fields");
+  const swaps = report();
+  swaps.observations[complete(swaps)].indexed.index.entry_swaps = swaps.observations[complete(swaps)].indexed.index.key_comparisons + 1;
+  expect(() => validateIndexedTransfer(swaps)).toThrow("swaps exceed");
+  const entries = report();
+  entries.observations[complete(entries)].indexed.index.entries += 2;
+  expect(() => validateIndexedTransfer(entries)).toThrow("exceeds twice");
+  const lookups = report();
+  lookups.observations[complete(lookups)].indexed.index.group_lookups = 0;
+  expect(() => validateIndexedTransfer(lookups)).toThrow("every index entry");
 });
 
 test("numeric consistency rejects invented gains, omitted work, wrong answers, unexhausted unknowns and broken equivalence", () => {

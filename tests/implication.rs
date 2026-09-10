@@ -56,12 +56,12 @@ fn agrees_with_reference(input: &Cnf, n: u32) -> GraphArm {
     let oracle = peqnp::truth_table_sat(input, n).unwrap();
     assert_eq!(reference.model_count > 0, oracle, "{input:?}");
     let arm = analyze(input, n, ARM_BUDGET).unwrap();
-    let certificate = arm.certificate.as_ref().expect("full budget completes");
-    let (valid, _) = check_certificate(input, n, certificate).unwrap();
-    assert!(valid, "{input:?} {certificate:?}");
+    let witness = arm.certificate.as_ref().expect("full budget completes");
+    let (valid, _) = check_certificate(input, n, witness).unwrap();
+    assert!(valid, "{input:?}");
     if let Some(backbone) = &reference.backbone {
         assert_eq!(arm.decision, Outcome::Sat, "{input:?}");
-        assert!(matches!(certificate, Certificate::Sat(_)));
+        assert!(matches!(witness, Certificate::Sat(_)));
         assert_eq!(arm.backbone_status, BackboneStatus::Complete);
         let found: Vec<i32> = arm.clues.iter().map(|clue| clue.literal).collect();
         assert_eq!(&found, backbone, "{input:?}");
@@ -73,7 +73,7 @@ fn agrees_with_reference(input: &Cnf, n: u32) -> GraphArm {
         }
     } else {
         assert_eq!(arm.decision, Outcome::Unsat, "{input:?}");
-        assert!(!matches!(certificate, Certificate::Sat(_)));
+        assert!(!matches!(witness, Certificate::Sat(_)));
         assert_eq!(arm.backbone_status, BackboneStatus::NotDefinedUnsat);
         assert!(arm.clues.is_empty());
     }
@@ -368,7 +368,7 @@ fn budget_exhaustion_at_each_phase_boundary_stays_unknown() {
     ] {
         let arm = analyze(&input, n, budget).unwrap();
         assert_eq!(arm.decision, Outcome::Unknown, "budget {budget}");
-        assert_eq!(arm.certificate, None);
+        assert!(arm.certificate.is_none(), "budget {budget}");
         assert_eq!(arm.backbone_status, BackboneStatus::Unknown);
         assert!(arm.clues.is_empty());
         assert_eq!(arm.total_work(), budget);
@@ -383,7 +383,7 @@ fn budget_exhaustion_at_each_phase_boundary_stays_unknown() {
     for budget in [decision, decision + 1, total - 1] {
         let arm = analyze(&input, n, budget).unwrap();
         assert_eq!(arm.decision, Outcome::Sat, "budget {budget}");
-        assert_eq!(arm.certificate, full.certificate);
+        assert!(arm.certificate == full.certificate, "budget {budget}");
         assert_eq!(arm.decision_work(), decision);
         assert_eq!(arm.backbone_status, BackboneStatus::Unknown);
         assert!(arm.clues.is_empty());

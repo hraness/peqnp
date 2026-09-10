@@ -60,9 +60,15 @@ function validateIndex(index, arm, input) {
   keys(index, INDEX_FIELDS, "index counter");
   for (const key of INDEX_FIELDS) count(index[key]);
   require(index.key_comparisons === arm.preprocessing.pair_checks, "Index key comparisons differ from the charged pair checks.");
-  if (!preprocessingCompleted(arm)) return;
+  // Every heapsort swap follows a key comparison, and no arm can store more
+  // entries than twice its eligible binary clauses, whether or not it finished.
+  require(index.entry_swaps <= index.key_comparisons, "Index swaps exceed the charged key comparisons.");
   const eligible = input.filter(clause => clause.length === 2).length;
+  require(index.entries <= 2 * eligible, "Index entry count exceeds twice the eligible binary clauses.");
+  if (!preprocessingCompleted(arm)) return;
   require(index.entries === 2 * eligible, "Index entry count differs from twice the eligible binary clauses.");
+  require(index.group_lookups >= index.entries, "A completed scan reads every index entry at least once.");
+  // Peak cells count the entry array plus one witness triple and one unit per derived unit.
   require(index.peak_stored_scalar_cells === sum([3 * index.entries, 4 * arm.derived_units.length]), "Peak stored cells differ from the entry, witness and unit arrays.");
 }
 

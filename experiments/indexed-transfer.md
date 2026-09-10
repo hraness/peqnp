@@ -72,7 +72,7 @@ No amortization against the baseline can be computed: no completed case had posi
 
 Units are the indexed arm's derived units; the generic arm derived the same units on every case it completed. Over the 144 random cases alone, baseline work was 493,033, generic work 5,480,848, and indexed work 1,072,836, with search nodes falling from 754 to 578 in both library arms. The indexed arm derived units on 79 random cases and was cheaper than the baseline on none of them. Pure 2-CNF cases produced the most units and the largest relative penalty: the indexed arm spent 459,023 events preprocessing them to save 53,687 events of search.
 
-The duplicate-pressure controls are mechanism and overhead controls, not representative instances, and are reported separately for that reason. Each is trivially satisfiable and forces its shared literal; every arm that completed found it. The eight-repetition controls show the intended contrast between the two matchers: at 176 clauses, the generic matcher exhausted a million events while the index spent 59,438 and 61,475 events. The baseline solved the same formulas for 4,160 events each.
+The duplicate-pressure controls are mechanism and overhead controls, not representative instances, and are reported separately for that reason. Each is trivially satisfiable and forces its shared literal; every arm that completed found it. The eight-repetition controls show the intended contrast between the two matchers: at 176 clauses, the generic matcher exhausted a million events while the index spent 59,438 and 61,475 events on preprocessing, 61,564 and 63,601 in total. The baseline solved the same formulas for 4,160 events each.
 
 ## What the index did
 

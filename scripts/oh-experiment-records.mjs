@@ -4,6 +4,7 @@ import { canonicalSha256, sha256Hex } from "@hraness/oh";
 import { commitAdditive, openLedger, readReport, record, seedRecords, sourceManifest } from "./oh-ledger.mjs";
 import { validateIndexedTransfer } from "./oh-indexed-report.mjs";
 import { validateImplicationCalibration } from "./oh-implication-report.mjs";
+import { validateFragmentInterface } from "./oh-fragment-report.mjs";
 
 const MAX_PROTOCOL_BYTES = 1024 * 1024;
 const AUTHORITY = "Local report ingestion; input claims require independent experimental review.";
@@ -35,7 +36,8 @@ function observationRecords({ prefix, statement, proposition, domain, kind, evid
       assertion,
       kind,
       reportSha256: input.sha256,
-      frozenLibrarySha256: canonicalSha256(input.report.frozen_library.rules),
+      // The fragment interface uses fixed algorithmic knowledge and carries no frozen library.
+      ...(input.report.frozen_library ? { frozenLibrarySha256: canonicalSha256(input.report.frozen_library.rules) } : {}),
       ...evidence(input.report),
       limitations: input.report.limitations,
       interpretation: "Measured costs and outcomes remain observations, including regressions and unknowns; this is not a claim of a general speedup.",
@@ -77,6 +79,23 @@ export function implicationCalibrationRecords(input, source) {
   }, input, source);
 }
 
+export function fragmentInterfaceRecords(input, source) {
+  return observationRecords({
+    prefix: "fragment-interface",
+    statement: "statement:fragment-interface-v1-comparison",
+    proposition: "The fragment-interface-v1 experiment compares, on 162 fixed width-at-most-three CNF cases, the deterministic DPLL baseline on the original formula against the binary-fragment interface: implication-graph construction, components, a fragment certificate, forced-literal extraction, and unit appends followed by the same DPLL.",
+    domain: "The fixed finite protocol and exact reports cited by each observation; a known 2-SAT interface is calibrated as a preprocessor, and no total-work improvement over the baseline, novel inference rule, or general SAT complexity result is asserted by this statement.",
+    kind: "finite-fragment-interface-report",
+    evidence: report => ({
+      measuredSummary: report.summary,
+      comparison: report.comparison,
+      phaseWorkUnits: report.summary.arms.fragment.phases,
+      outsideArmWorkUnits: report.outside_arms,
+      enumerationRatios: report.summary.enumeration_ratio,
+    }),
+  }, input, source);
+}
+
 function recordExperiment(root, relativePath, { validate, protocolPath, records, purpose }) {
   const input = readReport(root, relativePath, validate);
   const protocolFile = resolve(root, protocolPath);
@@ -110,5 +129,14 @@ export function recordImplicationCalibration(root, relativePath) {
     protocolPath: "experiments/implication-protocol.md",
     records: implicationCalibrationRecords,
     purpose: "implication-calibration-v1",
+  });
+}
+
+export function recordFragmentInterface(root, relativePath) {
+  return recordExperiment(root, relativePath, {
+    validate: validateFragmentInterface,
+    protocolPath: "experiments/fragment-interface-protocol.md",
+    records: fragmentInterfaceRecords,
+    purpose: "fragment-interface-v1",
   });
 }

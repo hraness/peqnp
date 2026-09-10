@@ -338,7 +338,7 @@ export function recordClueTransfer(root, relativePath) {
 
 export async function main(args = process.argv.slice(2)) {
   const [command, input, ...extra] = args;
-  const recordCommands = ["record", "record-transfer", "record-indexed", "record-implication"];
+  const recordCommands = ["record", "record-transfer", "record-indexed", "record-implication", "record-fragment"];
   if (extra.length || (!recordCommands.includes(command) && input !== undefined)) throw new Error("Unexpected arguments.");
   if (command === "contract") return inspectContract();
   if (command === "init") {
@@ -347,17 +347,18 @@ export async function main(args = process.argv.slice(2)) {
   }
   if (command === "record" && input) return recordCalibration(repositoryRoot, input);
   if (command === "record-transfer" && input) return recordClueTransfer(repositoryRoot, input);
-  if (["record-indexed", "record-implication"].includes(command) && input) {
+  if (["record-indexed", "record-implication", "record-fragment"].includes(command) && input) {
     // Dynamic import keeps the record module's dependency on this file acyclic at load time.
-    const { recordIndexedTransfer, recordImplicationCalibration } = await import("./oh-experiment-records.mjs");
-    return (command === "record-indexed" ? recordIndexedTransfer : recordImplicationCalibration)(repositoryRoot, input);
+    const { recordIndexedTransfer, recordImplicationCalibration, recordFragmentInterface } = await import("./oh-experiment-records.mjs");
+    const recorders = { "record-indexed": recordIndexedTransfer, "record-implication": recordImplicationCalibration, "record-fragment": recordFragmentInterface };
+    return recorders[command](repositoryRoot, input);
   }
   if (command === "verify") {
     const oh = openLedger(repositoryRoot);
     try { return { database: ".oh/research.sqlite", space: SPACE, verification: oh.verify() }; }
     finally { oh.store.close(); }
   }
-  throw new Error("Usage: bun scripts/oh-ledger.mjs <contract|init|verify|record relative-report.json|record-transfer relative-report.json|record-indexed relative-report.json|record-implication relative-report.json>");
+  throw new Error("Usage: bun scripts/oh-ledger.mjs <contract|init|verify|record relative-report.json|record-transfer relative-report.json|record-indexed relative-report.json|record-implication relative-report.json|record-fragment relative-report.json>");
 }
 
 if (import.meta.main) {

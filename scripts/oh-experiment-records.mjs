@@ -1,13 +1,56 @@
 import { lstatSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { canonicalSha256, sha256Hex } from "@hraness/oh";
+import { canonicalJson, canonicalSha256, sha256Hex } from "@hraness/oh";
 import { commitAdditive, openLedger, readReport, record, seedRecords, sourceManifest } from "./oh-ledger.mjs";
 import { validateIndexedTransfer } from "./oh-indexed-report.mjs";
 import { validateImplicationCalibration } from "./oh-implication-report.mjs";
 import { validateFragmentInterface } from "./oh-fragment-report.mjs";
+import { validateExtractionCost } from "./oh-extraction-report.mjs";
 
 const MAX_PROTOCOL_BYTES = 1024 * 1024;
 const AUTHORITY = "Local report ingestion; input claims require independent experimental review.";
+// Pinned Oh v0.4.3 caps one graph record value at OH_GRAPH_LIMITS_V1.recordBytes
+// (1 MiB canonical). A report whose canonical bytes fit is stored whole in its
+// edition, byte for byte as before. A larger report (extraction-cost-v1 is
+// 1.78 MB canonical) is stored as the same edition without `observations`
+// plus ordered observation-part editions, each under the bound; the edition
+// depends on its parts and `editionReport` reassembles the exact report so
+// publication admission still revalidates it from the ledger alone.
+const EDITION_REPORT_BYTES = 768 * 1024;
+
+function observationParts(prefix, input) {
+  const bytes = value => Buffer.byteLength(canonicalJson(value), "utf8");
+  if (bytes(input.report) <= EDITION_REPORT_BYTES) return null;
+  const parts = [[]];
+  let size = 0;
+  for (const row of input.report.observations) {
+    const rowBytes = bytes(row) + 1;
+    if (size + rowBytes > EDITION_REPORT_BYTES && parts.at(-1).length > 0) { parts.push([]); size = 0; }
+    parts.at(-1).push(row);
+    size += rowBytes;
+  }
+  return parts.map((observations, part) => record("edition:" + prefix + "-" + input.sha256 + "-part-" + part, "edition", {
+    path: input.path, reportSha256: input.sha256, mediaType: "application/json", part, parts: parts.length, observations,
+  }));
+}
+
+// The report stored by an edition, reassembled from its observation parts
+// when the edition was split; `lookup` resolves a record key.
+export function editionReport(edition, lookup) {
+  const value = edition.value;
+  if (!value.observationParts) return value.report;
+  const parts = value.observationParts.map((key, index) => {
+    const part = lookup(key);
+    if (!part || part.kind !== "edition" || part.value.path !== value.path || part.value.reportSha256 !== value.sha256 ||
+        part.value.part !== index || part.value.parts !== value.observationParts.length || !Array.isArray(part.value.observations)) {
+      throw new Error("Observation part missing or inconsistent with its edition.");
+    }
+    return part.value.observations;
+  });
+  const observations = parts.flat();
+  if (observations.length !== value.observationCount || parts.some(part => part.length === 0)) throw new Error("Observation parts do not reassemble the recorded report.");
+  return { ...value.report, observations };
+}
 
 // Record constructors follow clueTransferRecords exactly: one shared statement
 // per experiment, then edition, activity, assertion, and evidence per
@@ -17,9 +60,15 @@ function observationRecords({ prefix, statement, proposition, domain, kind, evid
   const edition = "edition:" + prefix + "-" + input.sha256;
   const activity = "activity:" + prefix + "-" + identity;
   const assertion = "assertion:" + prefix + "-" + identity;
+  const parts = observationParts(prefix, input);
+  const { observations, ...rest } = input.report;
+  const stored = parts
+    ? { report: rest, observationParts: parts.map(part => part.key), observationCount: observations.length }
+    : { report: input.report };
   return [
     record(statement, "statement", { proposition, domain }, ["context:research-method"]),
-    record(edition, "edition", { path: input.path, sha256: input.sha256, mediaType: "application/json", report: input.report }),
+    ...(parts ?? []),
+    record(edition, "edition", { path: input.path, sha256: input.sha256, mediaType: "application/json", ...stored }, parts ? parts.map(part => part.key) : []),
     record(activity, "activity", {
       experiment: input.report.experiment,
       status: "recorded-observation",
@@ -96,6 +145,28 @@ export function fragmentInterfaceRecords(input, source) {
   }, input, source);
 }
 
+export function extractionCostRecords(input, source) {
+  return observationRecords({
+    prefix: "extraction-cost",
+    statement: "statement:extraction-cost-v1-comparison",
+    proposition: "The extraction-cost-v1 experiment compares, on 176 fresh width-at-most-three CNF cases and the 162 fragment-interface-v1 cases, three arms under one budget: the deterministic DPLL baseline on the original formula, the unchanged per-literal fragment-interface arm, and a settled extraction that differs from it in the extraction phase alone.",
+    domain: "The fixed finite protocol and exact reports cited by each observation; both extraction procedures share the known O(n(n + m2)) worst case, and no total-work improvement over the baseline, linear extraction bound, novel inference rule, or general SAT complexity result is asserted by this statement.",
+    kind: "finite-extraction-cost-report",
+    evidence: report => ({
+      measuredSummary: { primary: report.primary.summary, secondary: report.secondary.summary },
+      comparison: report.comparison,
+      comparisons: { primary: report.primary.summary.comparisons, secondary: report.secondary.summary.comparisons },
+      extractionWorkUnits: Object.fromEntries(["primary", "secondary"].map(section => [section, {
+        per_literal: report[section].summary.arms.per_literal.phases.extraction_work_units,
+        settled: report[section].summary.arms.settled.phases.extraction_work_units,
+      }])),
+      settledStats: { primary: report.primary.summary.settled_stats, secondary: report.secondary.summary.settled_stats },
+      outsideArmWorkUnits: report.outside_arms,
+      enumerationRatios: { primary: report.primary.summary.enumeration_ratio, secondary: report.secondary.summary.enumeration_ratio },
+    }),
+  }, input, source);
+}
+
 function recordExperiment(root, relativePath, { validate, protocolPath, records, purpose }) {
   const input = readReport(root, relativePath, validate);
   const protocolFile = resolve(root, protocolPath);
@@ -138,5 +209,14 @@ export function recordFragmentInterface(root, relativePath) {
     protocolPath: "experiments/fragment-interface-protocol.md",
     records: fragmentInterfaceRecords,
     purpose: "fragment-interface-v1",
+  });
+}
+
+export function recordExtractionCost(root, relativePath) {
+  return recordExperiment(root, relativePath, {
+    validate: validateExtractionCost,
+    protocolPath: "experiments/extraction-cost-protocol.md",
+    records: extractionCostRecords,
+    purpose: "extraction-cost-v1",
   });
 }

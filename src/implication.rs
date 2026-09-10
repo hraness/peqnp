@@ -87,10 +87,10 @@ pub(crate) fn ticks(m: &mut Meter, event: Event, count: usize) -> Result<(), Fai
     Ok(())
 }
 
-fn node(lit: i32) -> usize {
+pub(crate) fn node(lit: i32) -> usize {
     2 * (lit.unsigned_abs() as usize - 1) + usize::from(lit < 0)
 }
-fn literal(vertex: usize) -> i32 {
+pub(crate) fn literal(vertex: usize) -> i32 {
     let v = (vertex / 2 + 1) as i32;
     if vertex & 1 == 0 {
         v
@@ -100,14 +100,14 @@ fn literal(vertex: usize) -> i32 {
 }
 
 #[derive(Clone, Copy)]
-struct Edge {
-    to: usize,
-    clause: usize,
+pub(crate) struct Edge {
+    pub(crate) to: usize,
+    pub(crate) clause: usize,
 }
 pub(crate) struct Graph {
-    forward: Vec<Vec<Edge>>,
-    reverse: Vec<Vec<Edge>>,
-    empty: Option<usize>,
+    pub(crate) forward: Vec<Vec<Edge>>,
+    pub(crate) reverse: Vec<Vec<Edge>>,
+    pub(crate) empty: Option<usize>,
 }
 
 /// Whole-formula validation with a declared width bound: the 2-CNF arms use
@@ -196,7 +196,7 @@ fn construct(input: &Cnf, n: u32, m: &mut Meter) -> Result<Graph, Failure> {
     Ok(graph)
 }
 
-fn array<T: Copy>(len: usize, value: T, m: &mut Meter) -> Result<Vec<T>, Failure> {
+pub(crate) fn array<T: Copy>(len: usize, value: T, m: &mut Meter) -> Result<Vec<T>, Failure> {
     m.tick(Event::ClauseWrite)?;
     ticks(m, Event::LiteralWrite, len)?;
     Ok(vec![value; len])

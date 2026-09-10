@@ -7,7 +7,12 @@ import { Oh } from "@hraness/oh/sdk";
 import { CONTRACT_SHA256, PROFILE, SPACE, inspectContract, openLedger } from "./oh-ledger.mjs";
 import { admitPublicHistory, admitUnpublishedDocuments } from "./oh-public-records.mjs";
 
-const MAX_SNAPSHOT_BYTES = 8 * 1024 * 1024;
+// Reviewed bound on the pretty-printed bundle. Raised from 8 MiB to 16 MiB,
+// the pinned runtime's own canonical-JSON parse bound, when extraction-cost-v1
+// was admitted: its observation-part editions add about 5 MB of indented
+// JSON to a bundle that already held 6.3 MB. Restore and check parse the
+// whole file, so the bound stays a size review, never a silent truncation.
+const MAX_SNAPSHOT_BYTES = 16 * 1024 * 1024;
 const MAX_OPERATIONS = 1000;
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const GENESIS = { sequence: 0, operationSha256: null };

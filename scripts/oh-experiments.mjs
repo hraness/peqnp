@@ -3,7 +3,8 @@ import { validateClueTransfer } from "./oh-transfer-report.mjs";
 import { validateIndexedTransfer } from "./oh-indexed-report.mjs";
 import { validateImplicationCalibration } from "./oh-implication-report.mjs";
 import { validateFragmentInterface } from "./oh-fragment-report.mjs";
-import { fragmentInterfaceRecords, implicationCalibrationRecords, indexedTransferRecords } from "./oh-experiment-records.mjs";
+import { validateExtractionCost } from "./oh-extraction-report.mjs";
+import { extractionCostRecords, fragmentInterfaceRecords, implicationCalibrationRecords, indexedTransferRecords } from "./oh-experiment-records.mjs";
 
 // This is an explicit publication allowlist, not a plugin or arbitrary-ingest
 // interface. Keep historical validators and constructors when adding a version.
@@ -46,6 +47,14 @@ export const EXPERIMENTS = [
     activityPrefix: "activity:fragment-interface-",
     validate: validateFragmentInterface,
     records: fragmentInterfaceRecords,
+  },
+  {
+    id: "extraction-cost-v1",
+    path: "artifacts/extraction-cost.json",
+    protocolPath: "experiments/extraction-cost-protocol.md",
+    activityPrefix: "activity:extraction-cost-",
+    validate: validateExtractionCost,
+    records: extractionCostRecords,
   },
 ];
 

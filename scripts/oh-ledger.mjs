@@ -14,7 +14,12 @@ import { validateClueTransfer } from "./oh-transfer-report.mjs";
 export const CONTRACT_SHA256 = "e53ae573c2af417082be9f554d0f6f3e317f054daf745181f462608e3f622594";
 export const SPACE = "peqnp";
 export const PROFILE = "peqnp.research-ledger.v1";
-const MAX_REPORT_BYTES = 1024 * 1024;
+// Reviewed bound on one experiment report. Raised from 1 MiB to 4 MiB when
+// extraction-cost-v1 (1.86 MB: 338 observations with three arms and every
+// clue path of both fragment arms) was admitted; the ledger edition stores
+// the whole report, so the bound is a deliberate size review, not a limit
+// on what the validators inspect.
+const MAX_REPORT_BYTES = 4 * 1024 * 1024;
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const CALIBRATION_PROGRAMS = ["unit", "(neg unit)"].flatMap(polarity =>
   [false, true].flatMap(removeSatisfied => [false, true].map(removeFalse =>
@@ -338,7 +343,7 @@ export function recordClueTransfer(root, relativePath) {
 
 export async function main(args = process.argv.slice(2)) {
   const [command, input, ...extra] = args;
-  const recordCommands = ["record", "record-transfer", "record-indexed", "record-implication", "record-fragment"];
+  const recordCommands = ["record", "record-transfer", "record-indexed", "record-implication", "record-fragment", "record-extraction"];
   if (extra.length || (!recordCommands.includes(command) && input !== undefined)) throw new Error("Unexpected arguments.");
   if (command === "contract") return inspectContract();
   if (command === "init") {
@@ -347,10 +352,10 @@ export async function main(args = process.argv.slice(2)) {
   }
   if (command === "record" && input) return recordCalibration(repositoryRoot, input);
   if (command === "record-transfer" && input) return recordClueTransfer(repositoryRoot, input);
-  if (["record-indexed", "record-implication", "record-fragment"].includes(command) && input) {
+  if (["record-indexed", "record-implication", "record-fragment", "record-extraction"].includes(command) && input) {
     // Dynamic import keeps the record module's dependency on this file acyclic at load time.
-    const { recordIndexedTransfer, recordImplicationCalibration, recordFragmentInterface } = await import("./oh-experiment-records.mjs");
-    const recorders = { "record-indexed": recordIndexedTransfer, "record-implication": recordImplicationCalibration, "record-fragment": recordFragmentInterface };
+    const { recordIndexedTransfer, recordImplicationCalibration, recordFragmentInterface, recordExtractionCost } = await import("./oh-experiment-records.mjs");
+    const recorders = { "record-indexed": recordIndexedTransfer, "record-implication": recordImplicationCalibration, "record-fragment": recordFragmentInterface, "record-extraction": recordExtractionCost };
     return recorders[command](repositoryRoot, input);
   }
   if (command === "verify") {
@@ -358,7 +363,7 @@ export async function main(args = process.argv.slice(2)) {
     try { return { database: ".oh/research.sqlite", space: SPACE, verification: oh.verify() }; }
     finally { oh.store.close(); }
   }
-  throw new Error("Usage: bun scripts/oh-ledger.mjs <contract|init|verify|record relative-report.json|record-transfer relative-report.json|record-indexed relative-report.json|record-implication relative-report.json|record-fragment relative-report.json>");
+  throw new Error("Usage: bun scripts/oh-ledger.mjs <contract|init|verify|record relative-report.json|record-transfer relative-report.json|record-indexed relative-report.json|record-implication relative-report.json|record-fragment relative-report.json|record-extraction relative-report.json>");
 }
 
 if (import.meta.main) {

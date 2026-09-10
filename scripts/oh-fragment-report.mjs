@@ -63,8 +63,10 @@ function parityCycle(m) {
 // The fixed 162-case corpus in protocol enumeration order. Engineered
 // prefixes are regenerated exactly; the pseudorandom ternary and binary
 // suffixes are identified by their parameters and effective seed and checked
-// for count, width, and distinct variables only.
-function expectedCases() {
+// for count, width, and distinct variables only. Exported so the
+// extraction-cost validator regenerates its secondary corpus from the same
+// builder rather than a second copy.
+export function expectedCases() {
   const cases = new Map();
   const add = (id, family, variables, metadata, prefix, ternary, binary) =>
     cases.set(id, { metadata: { family, variables, ...EMPTY_METADATA, ...metadata }, prefix, ternary, binary });
@@ -99,7 +101,7 @@ const drawn = (clause, width) => clause.length === width && new Set(clause.map(M
 // Raw-clause path checking on the width-at-most-three formula: only a unit
 // (x) supporting not x -> x, or a binary clause (x or y) supporting
 // not x -> y and not y -> x, can witness an edge. Ternary clauses never do.
-function validatePath(path, input, from, to, variables) {
+export function validatePath(path, input, from, to, variables) {
   keys(path, ["nodes", "clauses"], "implication path");
   require(Array.isArray(path.nodes) && Array.isArray(path.clauses) && path.nodes.length === path.clauses.length + 1 &&
     path.nodes.every(node => literal(node, variables)) && new Set(path.nodes).size === path.nodes.length, "Implication path must be a simple node sequence with one clause per edge.");
@@ -114,7 +116,7 @@ function validatePath(path, input, from, to, variables) {
   });
 }
 
-function validateCertificate(certificate, input, variables) {
+export function validateCertificate(certificate, input, variables) {
   require(certificate && typeof certificate === "object" && !Array.isArray(certificate), "Completed fragment arm requires a certificate.");
   if (certificate.kind === "sat") {
     keys(certificate, ["kind", "values"], "SAT certificate");
@@ -217,7 +219,7 @@ function validateObservation(row, fixed) {
 
 // Descriptive ratio as the Rust emits it: nearest thousandth by u64
 // integer arithmetic, null on a zero denominator or u64 overflow.
-function ratio(numerator, denominator) {
+export function ratio(numerator, denominator) {
   if (denominator === 0) return null;
   const scaled = BigInt(numerator) * 1000n;
   if (scaled > U64_MAX) return null;

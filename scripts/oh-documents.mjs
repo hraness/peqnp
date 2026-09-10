@@ -18,10 +18,15 @@ export const DOCUMENT_PATHS_V2 = [
   "experiments/implication-protocol.md",
   "experiments/implication-calibration.md",
 ].sort();
-export const DOCUMENT_PATHS = [
+export const DOCUMENT_PATHS_V3 = [
   ...DOCUMENT_PATHS_V2,
   "experiments/fragment-interface-protocol.md",
   "experiments/fragment-interface.md",
+].sort();
+export const DOCUMENT_PATHS = [
+  ...DOCUMENT_PATHS_V3,
+  "experiments/extraction-cost-protocol.md",
+  "experiments/extraction-cost.md",
 ].sort();
 export const DOCUMENT_REGISTRY_PREFIX = "context:canonical-documents-";
 
@@ -93,9 +98,17 @@ export function documentRecordsV2(documents, previousRegistry = null) {
 
 export function documentRecordsV3(documents, previousRegistry = null) {
   return versionedDocumentRecords(documents, previousRegistry, {
-    paths: DOCUMENT_PATHS,
+    paths: DOCUMENT_PATHS_V3,
     schema: "peqnp.canonical-documents.v3",
     message: "Canonical v3 documents require the exact twelve-file set and matching body hashes.",
+  });
+}
+
+export function documentRecordsV4(documents, previousRegistry = null) {
+  return versionedDocumentRecords(documents, previousRegistry, {
+    paths: DOCUMENT_PATHS,
+    schema: "peqnp.canonical-documents.v4",
+    message: "Canonical v4 documents require the exact fourteen-file set and matching body hashes.",
   });
 }
 
@@ -103,6 +116,7 @@ export function documentRecordsForSchema(schema, documents, previousRegistry = n
   if (schema === "peqnp.canonical-documents.v1") return documentRecords(documents, previousRegistry);
   if (schema === "peqnp.canonical-documents.v2") return documentRecordsV2(documents, previousRegistry);
   if (schema === "peqnp.canonical-documents.v3") return documentRecordsV3(documents, previousRegistry);
+  if (schema === "peqnp.canonical-documents.v4") return documentRecordsV4(documents, previousRegistry);
   throw new Error("Unsupported canonical document registry schema.");
 }
 
@@ -115,11 +129,11 @@ export function recordDocuments(root) {
     const registries = oh.store.exportOperations(0, 1000).flatMap(operation => operation.changes)
       .filter(change => change.kind === "put" && change.record.key.startsWith(DOCUMENT_REGISTRY_PREFIX));
     const previous = registries.at(-1)?.record;
-    const records = documentRecordsV3(documents, previous?.key ?? null);
-    if (previous?.value.schema === "peqnp.canonical-documents.v3" && canonicalJson(previous.value.documents) === canonicalJson(records.at(-1).value.documents)) {
+    const records = documentRecordsV4(documents, previous?.key ?? null);
+    if (previous?.value.schema === "peqnp.canonical-documents.v4" && canonicalJson(previous.value.documents) === canonicalJson(records.at(-1).value.documents)) {
       return { inserted: 0, verification: oh.verify() };
     }
-    return commitAdditive(oh, records, "canonical-documents-v3", head.head);
+    return commitAdditive(oh, records, "canonical-documents-v4", head.head);
   }
   finally { oh.store.close(); }
 }

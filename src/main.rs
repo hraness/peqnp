@@ -5,11 +5,12 @@ fn run() -> Result<(), String> {
     let command = args.first().map(String::as_str);
     if !matches!(
         command,
-        Some("experiment" | "transfer" | "indexed" | "implication" | "fragment")
+        Some("experiment" | "transfer" | "indexed" | "implication" | "fragment" | "extraction")
     ) || args.len() > 2
     {
         return Err(
-            "usage: peqnp <experiment|transfer|indexed|implication|fragment> [output.json]".into(),
+            "usage: peqnp <experiment|transfer|indexed|implication|fragment|extraction> [output.json]"
+                .into(),
         );
     }
     let path = PathBuf::from(args.get(1).map(String::as_str).unwrap_or(match command {
@@ -17,12 +18,18 @@ fn run() -> Result<(), String> {
         Some("indexed") => "artifacts/indexed-transfer.json",
         Some("implication") => "artifacts/implication-calibration.json",
         Some("fragment") => "artifacts/fragment-interface.json",
+        Some("extraction") => "artifacts/extraction-cost.json",
         _ => "artifacts/calibration.json",
     }));
     if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
-    let json = if command == Some("fragment") {
+    let json = if command == Some("extraction") {
+        let result =
+            peqnp::extraction::experiment().map_err(|e| format!("extraction failed: {e:?}"))?;
+        println!("{}", peqnp::extraction::summary_line(&result));
+        peqnp::extraction::json(&result)
+    } else if command == Some("fragment") {
         let result =
             peqnp::fragment::experiment().map_err(|e| format!("fragment failed: {e:?}"))?;
         println!("{}", peqnp::fragment::summary_line(&result));

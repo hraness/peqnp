@@ -7,8 +7,8 @@ import { Oh } from "@hraness/oh/sdk";
 import { admitPublicHistory } from "./oh-public-records.mjs";
 import { commitAdditive, initializeLedger, openLedger } from "./oh-ledger.mjs";
 import {
-  documentRecords, documentRecordsForSchema, documentRecordsV2, documentRecordsV3, DOCUMENT_PATHS, DOCUMENT_PATHS_V1, DOCUMENT_PATHS_V2,
-  readDocument, recordDocuments,
+  documentRecords, documentRecordsForSchema, documentRecordsV2, documentRecordsV3, documentRecordsV4, DOCUMENT_PATHS, DOCUMENT_PATHS_V1, DOCUMENT_PATHS_V2,
+  DOCUMENT_PATHS_V3, readDocument, recordDocuments,
 } from "./oh-documents.mjs";
 
 const roots = [];
@@ -40,7 +40,7 @@ test("the original five operations and 35 records remain admissible and replay t
   } finally { oh.store.close(); }
 });
 
-test("v1 to v3 activation preserves old editions and adds only the six new documents plus registry", () => {
+test("v1 to v4 activation preserves old editions and adds only the eight new documents plus registry", () => {
   const path = root();
   initializeLedger(path);
   const v1 = documentRecords(DOCUMENT_PATHS_V1.map(file => readDocument(path, file)));
@@ -48,25 +48,26 @@ test("v1 to v3 activation preserves old editions and adds only the six new docum
   try { commitAdditive(oh, v1, "document-version-fixture"); }
   finally { oh.store.close(); }
   const upgraded = recordDocuments(path);
-  expect(upgraded.inserted).toBe(7);
+  expect(upgraded.inserted).toBe(9);
   const current = openLedger(path);
   try {
     for (const record of v1) expect(current.get(record.key)?.recordSha256).toBe(record.recordSha256);
     const last = current.store.exportOperations(0, 1000).at(-1).changes.find(change => change.record.kind === "context").record;
-    expect(last.value.schema).toBe("peqnp.canonical-documents.v3");
+    expect(last.value.schema).toBe("peqnp.canonical-documents.v4");
     expect(last.value.previousRegistry).toBe(v1.at(-1).key);
-    expect(last.value.documents.length).toBe(12);
+    expect(last.value.documents.length).toBe(14);
     const history = current.store.exportOperations(0, 1000);
-    expect(admitPublicHistory(path, history).canonicalDocuments).toBe(12);
+    expect(admitPublicHistory(path, history).canonicalDocuments).toBe(14);
   } finally { current.store.close(); }
   expect(recordDocuments(path).inserted).toBe(0);
   expect(() => documentRecords(DOCUMENT_PATHS.map(file => readDocument(path, file)))).toThrow("exact path set");
   expect(() => documentRecordsV2(DOCUMENT_PATHS.map(file => readDocument(path, file)))).toThrow("exact ten-file set");
-  expect(() => documentRecordsV3(DOCUMENT_PATHS_V2.map(file => readDocument(path, file)))).toThrow("exact twelve-file set");
+  expect(() => documentRecordsV3(DOCUMENT_PATHS.map(file => readDocument(path, file)))).toThrow("exact twelve-file set");
+  expect(() => documentRecordsV4(DOCUMENT_PATHS_V3.map(file => readDocument(path, file)))).toThrow("exact fourteen-file set");
   expect(() => documentRecordsForSchema("unknown", [], null)).toThrow("Unsupported");
 });
 
-test("v2 to v3 activation keeps the ten v2 editions and adds the two fragment documents plus registry", () => {
+test("v2 to v4 activation keeps the ten v2 editions and adds the four fragment and extraction documents plus registry", () => {
   const path = root();
   initializeLedger(path);
   const v2 = documentRecordsV2(DOCUMENT_PATHS_V2.map(file => readDocument(path, file)));
@@ -74,16 +75,38 @@ test("v2 to v3 activation keeps the ten v2 editions and adds the two fragment do
   try { commitAdditive(oh, v2, "document-version-fixture"); }
   finally { oh.store.close(); }
   const upgraded = recordDocuments(path);
-  expect(upgraded.inserted).toBe(3);
+  expect(upgraded.inserted).toBe(5);
   const current = openLedger(path);
   try {
     for (const record of v2) expect(current.get(record.key)?.recordSha256).toBe(record.recordSha256);
     const last = current.store.exportOperations(0, 1000).at(-1).changes.find(change => change.record.kind === "context").record;
-    expect(last.value.schema).toBe("peqnp.canonical-documents.v3");
+    expect(last.value.schema).toBe("peqnp.canonical-documents.v4");
     expect(last.value.previousRegistry).toBe(v2.at(-1).key);
-    expect(last.value.documents.length).toBe(12);
+    expect(last.value.documents.length).toBe(14);
     expect(last.value.documents.map(entry => entry.path)).toEqual(DOCUMENT_PATHS);
-    expect(admitPublicHistory(path, current.store.exportOperations(0, 1000)).canonicalDocuments).toBe(12);
+    expect(admitPublicHistory(path, current.store.exportOperations(0, 1000)).canonicalDocuments).toBe(14);
+  } finally { current.store.close(); }
+  expect(recordDocuments(path).inserted).toBe(0);
+});
+
+test("v3 to v4 activation keeps the twelve v3 editions and adds the two extraction documents plus registry", () => {
+  const path = root();
+  initializeLedger(path);
+  const v3 = documentRecordsV3(DOCUMENT_PATHS_V3.map(file => readDocument(path, file)));
+  const oh = openLedger(path);
+  try { commitAdditive(oh, v3, "document-version-fixture"); }
+  finally { oh.store.close(); }
+  const upgraded = recordDocuments(path);
+  expect(upgraded.inserted).toBe(3);
+  const current = openLedger(path);
+  try {
+    for (const record of v3) expect(current.get(record.key)?.recordSha256).toBe(record.recordSha256);
+    const last = current.store.exportOperations(0, 1000).at(-1).changes.find(change => change.record.kind === "context").record;
+    expect(last.value.schema).toBe("peqnp.canonical-documents.v4");
+    expect(last.value.previousRegistry).toBe(v3.at(-1).key);
+    expect(last.value.documents.length).toBe(14);
+    expect(last.value.documents.map(entry => entry.path)).toEqual(DOCUMENT_PATHS);
+    expect(admitPublicHistory(path, current.store.exportOperations(0, 1000)).canonicalDocuments).toBe(14);
   } finally { current.store.close(); }
   expect(recordDocuments(path).inserted).toBe(0);
 });

@@ -12,6 +12,7 @@ import {
 import { researchRecordsV3, FRAGMENT_EDITION_KEY, FRAGMENT_EVIDENCE_KEY, FRAGMENT_REPORT_SHA256 } from "./research-records-v3.mjs";
 import { researchRecordsV4 } from "./research-records-v4.mjs";
 import { researchRecordsV5, EXTRACTION_EDITION_KEY, EXTRACTION_EVIDENCE_KEY, EXTRACTION_REPORT_SHA256 } from "./research-records-v5.mjs";
+import { researchRecordsV6 } from "./research-records-v6.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -95,15 +96,29 @@ export function recordResearchV5(root) {
   } finally { oh.store.close(); }
 }
 
+export function recordResearchV6(root) {
+  const oh = openLedger(root);
+  try {
+    const verified = oh.verify();
+    if (verified.operations > 1000) throw new Error("Research admission exceeds the bounded history; inspect before extending.");
+    admitPublicHistory(root, oh.store.exportOperations(0, 1000), { requireCurrentDocuments: false });
+    for (const key of ["assertion:interface-delta-v1", "inquiry:solver-owned-interface-v6"]) {
+      if (!oh.get(key)) throw new Error("The reviewed v2 and v5 research records must already exist.");
+    }
+    return commitAdditive(oh, researchRecordsV6(), "reviewed-research-v6", verified.head);
+  } finally { oh.store.close(); }
+}
+
 if (import.meta.main) {
   try {
     const args = process.argv.slice(2);
-    if (args.length !== 1 || !["research", "research-v2", "research-v3", "research-v4", "research-v5", "docs"].includes(args[0])) throw new Error("Usage: bun scripts/oh-research.mjs <research|research-v2|research-v3|research-v4|research-v5|docs>");
+    if (args.length !== 1 || !["research", "research-v2", "research-v3", "research-v4", "research-v5", "research-v6", "docs"].includes(args[0])) throw new Error("Usage: bun scripts/oh-research.mjs <research|research-v2|research-v3|research-v4|research-v5|research-v6|docs>");
     const result = args[0] === "research" ? recordResearch(repositoryRoot)
       : args[0] === "research-v2" ? recordResearchV2(repositoryRoot)
       : args[0] === "research-v3" ? recordResearchV3(repositoryRoot)
       : args[0] === "research-v4" ? recordResearchV4(repositoryRoot)
-      : args[0] === "research-v5" ? recordResearchV5(repositoryRoot) : recordDocuments(repositoryRoot);
+      : args[0] === "research-v5" ? recordResearchV5(repositoryRoot)
+      : args[0] === "research-v6" ? recordResearchV6(repositoryRoot) : recordDocuments(repositoryRoot);
     process.stdout.write(canonicalJson(result) + "\n");
   } catch (error) { process.stderr.write(String(error.message ?? error) + "\n"); process.exitCode = 1; }
 }

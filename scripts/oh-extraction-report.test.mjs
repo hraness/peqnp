@@ -313,6 +313,10 @@ test("local ingestion is additive, repeatable, and records both sections, the co
     expect(edition.dependencies).toEqual(parts);
     expect(first.inserted).toBe(5 + parts.length);
     expect(first.verification.records).toBe(11 + parts.length);
+    // Edition size policy: one operation per observation part, then one for the
+    // remaining records, after the bootstrap operation.
+    expect(first.verification.operations).toBe(1 + parts.length + 1);
+    expect(second.verification.operations).toBe(first.verification.operations);
     const assembled = editionReport(edition, key => oh.get(key));
     expect(canonicalJson(assembled)).toBe(canonicalJson(report()));
     for (const [index, key] of parts.entries()) {

@@ -181,8 +181,26 @@ function recordExperiment(root, relativePath, { validate, protocolPath, records,
     for (const seed of seedRecords()) {
       if (oh.get(seed.key)?.recordSha256 !== seed.recordSha256) throw new Error("Bootstrap records are missing or changed; inspect before recording.");
     }
-    return { reportSha256: input.sha256, ...commitAdditive(oh, records(input, source), purpose) };
+    return { reportSha256: input.sha256, ...commitInParts(oh, records(input, source), purpose) };
   } finally { oh.store.close(); }
+}
+
+// Edition size policy: each observation part is committed as its own
+// operation (purpose `<experiment>-part-<i>`) before the remaining records,
+// so that no single ledger operation exceeds one part (786,432 canonical
+// bytes) and a report up to the 4 MiB bound pages part by part. Parts are
+// dependency-free and additive, so an interrupted ingestion resumes: parts
+// already present are skipped and the final operation carries the rest.
+function commitInParts(oh, records, purpose) {
+  const isPart = record => record.kind === "edition" && Number.isInteger(record.value.part);
+  const parts = records.filter(isPart);
+  const rest = records.filter(record => !isPart(record));
+  let inserted = 0;
+  for (const [index, part] of parts.entries()) {
+    inserted += commitAdditive(oh, [part], `${purpose}-part-${index}`).inserted;
+  }
+  const last = commitAdditive(oh, rest, purpose);
+  return { inserted: inserted + last.inserted, verification: last.verification };
 }
 
 export function recordIndexedTransfer(root, relativePath) {

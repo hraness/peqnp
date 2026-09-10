@@ -8,6 +8,7 @@ import { researchRecordsV2 } from "./research-records-v2.mjs";
 import { researchRecordsV3 } from "./research-records-v3.mjs";
 import { researchRecordsV4 } from "./research-records-v4.mjs";
 import { researchRecordsV5 } from "./research-records-v5.mjs";
+import { researchRecordsV6 } from "./research-records-v6.mjs";
 
 function sourceIdentity(source) {
   const meaning = "Source bytes observed at ingestion; not an attestation that these bytes produced the supplied result.";
@@ -50,6 +51,7 @@ export function admitPublicHistory(root, operations, { requireCurrentDocuments =
   add(researchRecordsV3());
   add(researchRecordsV4());
   add(researchRecordsV5());
+  add(researchRecordsV6());
   for (const activity of actual.values()) {
     if (activity.kind !== "activity") continue;
     const experiment = experimentById(activity.value.experiment);

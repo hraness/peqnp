@@ -79,7 +79,9 @@ fn run() -> Result<(), String> {
     if positional.len() > 2 {
         return Err(USAGE.into());
     }
-    if oracle_answers.is_some() && command != Some("demo") {
+    // Exactly the replay commands registered as oracle experiments read an
+    // answer file; every other replay is decided by the truth table alone.
+    if oracle_answers.is_some() && command.and_then(peqnp::oracle::experiment).is_none() {
         return Err(format!(
             "{} does not read an oracle-answer file\n{USAGE}",
             command.unwrap_or_default()

@@ -34,10 +34,12 @@ if (run("bun", ["--version"], true) !== "1.3.14") {
   throw new Error("Bun 1.3.14 is required");
 }
 
-// Oracle experiments: [experiment, committed oracle-answer file]. Replay of
-// each experiment's artifact needs no solver; regeneration of its answer file
-// runs only where the pinned binary is present and matching. Empty until the
-// first protocol above the truth-table bound commits its answer file.
+// Oracle experiments: [experiment, replayed artifact, committed oracle-answer
+// file]. Replay of each experiment's artifact needs no solver; regeneration of
+// its answer file runs only where the pinned binary is present and matching.
+// Empty until the first protocol above the truth-table bound commits its
+// answer file; each row names its artifact explicitly (the demo fixture's is
+// artifacts/demo-reference.json, every protocol's is artifacts/<name>.json).
 const ORACLE_ANSWERS = [];
 const REPLAY_WALL_SECONDS_BOUND = 120;
 
@@ -101,7 +103,7 @@ for (const [artifact, protocol] of PROTOCOLS) {
 
 // Every committed oracle-answer file is structurally checked on every host
 // before replay; replay itself re-verifies every model and proof in Rust.
-for (const [experiment, answers] of ORACLE_ANSWERS) {
+for (const [experiment, , answers] of ORACLE_ANSWERS) {
   const bytes = readFileSync(resolve(root, answers));
   if (bytes.length > ANSWER_FILE_CAP_BYTES) throw new Error(`${answers} exceeds ${ANSWER_FILE_CAP_BYTES} bytes`);
   const file = JSON.parse(bytes.toString("utf8"));
@@ -122,7 +124,7 @@ try {
     ["implication", "implication-calibration.json"],
     ["fragment", "fragment-interface.json"],
     ["extraction", "extraction-cost.json"],
-    ...ORACLE_ANSWERS.map(([experiment, answers]) => [experiment, `${experiment}-reference.json`, answers]),
+    ...ORACLE_ANSWERS.map(([experiment, artifact, answers]) => [experiment, artifact.replace(/^artifacts\//, ""), answers]),
   ];
   for (const [command, filename, answers] of replays) {
     const report = resolve(scratch, filename);
@@ -135,7 +137,7 @@ try {
       throw new Error(`${filename} replay differs from the reviewed artifact`);
     }
   }
-  for (const [experiment, answers] of ORACLE_ANSWERS) {
+  for (const [experiment, , answers] of ORACLE_ANSWERS) {
     if (oracleSkip) {
       skipped.push(experiment);
       continue;
@@ -159,4 +161,4 @@ const experiments = 6 + ORACLE_ANSWERS.length;
 const oracleLine = skipped.length > 0 || oracle.state !== "present"
   ? `oracle regeneration skipped for [${skipped.join(", ")}]`
   : `${regenerated.length} oracle-answer files regenerated identically`;
-console.log(`All checks passed; the canonical ledger replayed, five protocol digests matched, ${experiments} experiments reproduced byte for byte; ${oracleLine}.`);
+console.log(`All checks passed; the canonical ledger replayed, ${PROTOCOLS.length} protocol digests matched, ${experiments} experiments reproduced byte for byte; ${oracleLine}.`);

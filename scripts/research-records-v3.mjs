@@ -19,13 +19,13 @@ const REVIEW = {
 
 export const FRAGMENT_REPORT_SHA256 = "ee4d85dbfd4ee3c981f401d482c61bc05fa68f035de6d54b853b03c30d3a6375";
 export const FRAGMENT_EDITION_KEY = "edition:fragment-interface-" + FRAGMENT_REPORT_SHA256;
-export const FRAGMENT_EVIDENCE_KEY = "evidence:fragment-interface-2f650044bf8aa520c4baf486a5f211704c6cf426dd50a9f2bd54ae2bdf2aa403";
+export const FRAGMENT_EVIDENCE_KEY = "evidence:fragment-interface-f046a86f9075375e79d620c9bef82597cf2de5f2fa780b42f41a219384af112c";
 
 export function researchRecordsV3() {
   const fragmentEvidenceKey = FRAGMENT_EVIDENCE_KEY;
   return [
     record("statement:pointer-certificate-asymmetry-v1", "statement", {
-      proposition: "Levin's distinction between a pointer and a compression, that a short seed unfolds into a rich pattern while no procedure recovers the seed from the pattern, is the certificate asymmetry that defines NP: a certificate is a pointer whose referent is checkable in polynomial time, and the open question is whether such a pointer can always be found from its referent within a polynomial bound. His free lunches, the third angle of a triangle from two known angles and every logic gate from one transistor, are the cases in which the inverse map is also cheap. Poincare's examiner, the prior examination that removes sterile combinations before invention, is a polynomial-time pre-filter; by the composition lemma, a pre-filter that always leaves polynomially many candidates for a polynomial-time consumer places the language in P. P = NP is therefore the universal form of the free-lunch claim, and nothing in the article decides it.",
+      proposition: "Levin's distinction between a pointer and a compression, that a short seed unfolds into a rich pattern while no procedure recovers the seed from the pattern, is the certificate asymmetry that defines NP: a certificate is a pointer whose referent is checkable in polynomial time, and the open question is whether such a pointer can always be found from its referent within a polynomial bound. His free lunches, the third angle of a triangle from two known angles and every logic gate from one transistor, are the cases in which the inverse map is also cheap. Poincare's examiner, the prior examination that removes sterile combinations before invention, is read as a pre-filter; if such a filter runs in polynomial time and always leaves polynomially many candidates for a polynomial-time consumer, the composition lemma places the language in P. P = NP is therefore equivalent to the universal form of the free-lunch claim, and nothing in the article decides it.",
       assumptions: [
         "Standard definitions: NP as polynomial-time verifiable certificates; P as deterministic polynomial time; the uniform worst-case target of the project.",
         "The reading concerns only the operational content of the article; its metaphysics of non-physical or agential patterns is neither adopted nor evaluated.",

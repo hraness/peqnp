@@ -90,7 +90,7 @@ fn agrees_with_reference(input: &Cnf, n: u32) -> FragmentArm {
     assert!(arm.outcome.agrees(oracle), "{input:?}");
     let certificate = arm.certificate.as_ref().expect("full budget completes");
     let (valid, _) = check_certificate(input, n, certificate).unwrap();
-    assert!(valid, "{input:?} {certificate:?}");
+    assert!(valid, "{input:?}");
     let found: Vec<i32> = arm.clues.iter().map(|clue| clue.literal).collect();
     assert_eq!(found, arm.derived_units);
     for clue in &arm.clues {

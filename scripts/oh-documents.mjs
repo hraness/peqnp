@@ -3,13 +3,20 @@ import { relative, resolve, sep } from "node:path";
 import { canonicalJson, canonicalSha256, sha256Hex } from "@hraness/oh";
 import { commitAdditive, openLedger, record } from "./oh-ledger.mjs";
 
-export const DOCUMENT_PATHS = [
+export const DOCUMENT_PATHS_V1 = [
   "docs/research-proposal.md",
   "docs/knowledge-and-complexity.md",
   "docs/clue-transfer-theory.md",
   "experiments/unit-propagation.md",
   "experiments/clue-transfer.md",
   "experiments/clue-transfer-protocol.md",
+].sort();
+export const DOCUMENT_PATHS = [
+  ...DOCUMENT_PATHS_V1,
+  "experiments/indexed-transfer-protocol.md",
+  "experiments/indexed-transfer.md",
+  "experiments/implication-protocol.md",
+  "experiments/implication-calibration.md",
 ].sort();
 export const DOCUMENT_REGISTRY_PREFIX = "context:canonical-documents-";
 
@@ -28,7 +35,7 @@ export function readDocument(root, path) {
 }
 
 export function documentRecords(documents, previousRegistry = null) {
-  if (documents.length !== DOCUMENT_PATHS.length || documents.some((doc, index) => doc.path !== DOCUMENT_PATHS[index] ||
+  if (documents.length !== DOCUMENT_PATHS_V1.length || documents.some((doc, index) => doc.path !== DOCUMENT_PATHS_V1[index] ||
     typeof doc.body !== "string" || Buffer.byteLength(doc.body) > 1024 * 1024 || sha256Hex(doc.body) !== doc.sha256)) {
     throw new Error("Canonical documents require the exact path set and matching body hashes.");
   }
@@ -47,6 +54,35 @@ export function documentRecords(documents, previousRegistry = null) {
   ];
 }
 
+// V1 above intentionally retains its exact six-file shape and identities.
+// V2 extends the readable set without invalidating any historical registry.
+export function documentRecordsV2(documents, previousRegistry = null) {
+  if (documents.length !== DOCUMENT_PATHS.length || documents.some((doc, index) => doc.path !== DOCUMENT_PATHS[index] ||
+    typeof doc.body !== "string" || Buffer.byteLength(doc.body) > 1024 * 1024 || sha256Hex(doc.body) !== doc.sha256)) {
+    throw new Error("Canonical v2 documents require the exact ten-file set and matching body hashes.");
+  }
+  const entries = documents.map(doc => ({ path: doc.path, sha256: doc.sha256,
+    editionKey: "edition:document-" + canonicalSha256({ path: doc.path, sha256: doc.sha256 }) }));
+  const schema = "peqnp.canonical-documents.v2";
+  return [
+    ...documents.map((doc, index) => record(entries[index].editionKey, "edition", {
+      path: doc.path, body: doc.body, sha256: doc.sha256, mediaType: "text/markdown", encoding: "utf-8",
+    })),
+    record(DOCUMENT_REGISTRY_PREFIX + canonicalSha256({ documents: entries, previousRegistry, schema }), "context", {
+      schema,
+      authority: "Canonical project research narratives; working Markdown must match these editions.",
+      documents: entries,
+      previousRegistry,
+    }, [...entries.map(entry => entry.editionKey), ...(previousRegistry ? [previousRegistry] : [])]),
+  ];
+}
+
+export function documentRecordsForSchema(schema, documents, previousRegistry = null) {
+  if (schema === "peqnp.canonical-documents.v1") return documentRecords(documents, previousRegistry);
+  if (schema === "peqnp.canonical-documents.v2") return documentRecordsV2(documents, previousRegistry);
+  throw new Error("Unsupported canonical document registry schema.");
+}
+
 export function recordDocuments(root) {
   const documents = DOCUMENT_PATHS.map(path => readDocument(root, path));
   const oh = openLedger(root);
@@ -56,11 +92,11 @@ export function recordDocuments(root) {
     const registries = oh.store.exportOperations(0, 1000).flatMap(operation => operation.changes)
       .filter(change => change.kind === "put" && change.record.key.startsWith(DOCUMENT_REGISTRY_PREFIX));
     const previous = registries.at(-1)?.record;
-    const records = documentRecords(documents, previous?.key ?? null);
-    if (previous && canonicalJson(previous.value.documents) === canonicalJson(records.at(-1).value.documents)) {
+    const records = documentRecordsV2(documents, previous?.key ?? null);
+    if (previous?.value.schema === "peqnp.canonical-documents.v2" && canonicalJson(previous.value.documents) === canonicalJson(records.at(-1).value.documents)) {
       return { inserted: 0, verification: oh.verify() };
     }
-    return commitAdditive(oh, records, "canonical-documents-v1", head.head);
+    return commitAdditive(oh, records, "canonical-documents-v2", head.head);
   }
   finally { oh.store.close(); }
 }

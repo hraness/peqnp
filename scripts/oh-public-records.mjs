@@ -1,8 +1,9 @@
 import { canonicalJson, canonicalSha256 } from "@hraness/oh";
-import { calibrationRecords, clueTransferRecords, readReport, seedRecords, validateCalibration } from "./oh-ledger.mjs";
-import { validateClueTransfer } from "./oh-transfer-report.mjs";
-import { documentRecords, DOCUMENT_PATHS, DOCUMENT_REGISTRY_PREFIX, readDocument } from "./oh-documents.mjs";
+import { readReport, seedRecords } from "./oh-ledger.mjs";
+import { experimentById, experimentByPath } from "./oh-experiments.mjs";
+import { documentRecordsForSchema, documentRecordsV2, DOCUMENT_PATHS, DOCUMENT_REGISTRY_PREFIX, readDocument } from "./oh-documents.mjs";
 import { researchRecords } from "./research-records.mjs";
+import { researchRecordsV2 } from "./research-records-v2.mjs";
 
 function sourceIdentity(source) {
   const meaning = "Source bytes observed at ingestion; not an attestation that these bytes produced the supplied result.";
@@ -40,19 +41,19 @@ export function admitPublicHistory(root, operations, { requireCurrentDocuments =
   const add = records => { for (const record of records) expected.set(record.key, record); };
   add(seedRecords());
   add(researchRecords());
+  add(researchRecordsV2());
   for (const activity of actual.values()) {
     if (activity.kind !== "activity") continue;
-    const transfer = activity.key.startsWith("activity:clue-transfer-");
-    const calibration = activity.key.startsWith("activity:calibration-");
-    if (!transfer && !calibration) continue;
-    const edition = activity.dependencies.map(key => actual.get(key)).find(record => record?.kind === "edition");
-    const path = transfer ? "artifacts/clue-transfer.json" : "artifacts/calibration.json";
-    if (!edition || edition.value.path !== path) throw new Error("Unrecognized experiment edition path.");
+    const experiment = experimentById(activity.value.experiment);
+    if (!experiment || !activity.key.startsWith(experiment.activityPrefix)) continue;
+    const path = experiment.path;
+    const edition = activity.dependencies.map(key => actual.get(key)).find(record => record?.kind === "edition" && record.value.path === path);
+    if (!edition) throw new Error("Unrecognized experiment edition path.");
     const input = { path, sha256: edition.value.sha256, report: edition.value.report };
     if (!/^[a-f0-9]{64}$/.test(input.sha256)) throw new Error("Invalid report byte identity.");
-    (transfer ? validateClueTransfer : validateCalibration)(input.report);
+    experiment.validate(input.report);
     sourceIdentity(activity.value.source);
-    add(transfer ? clueTransferRecords(input, activity.value.source) : calibrationRecords(input, activity.value.source));
+    add(experiment.records(input, activity.value.source));
   }
   for (const registry of actual.values()) {
     if (!registry.key.startsWith(DOCUMENT_REGISTRY_PREFIX)) continue;
@@ -62,7 +63,7 @@ export function admitPublicHistory(root, operations, { requireCurrentDocuments =
       if (!edition || edition.value.path !== entry.path || edition.value.sha256 !== entry.sha256) throw new Error("Document registry dependency mismatch.");
       return { path: entry.path, sha256: entry.sha256, body: edition.value.body };
     });
-    add(documentRecords(documents, registry.value.previousRegistry));
+    add(documentRecordsForSchema(registry.value.schema, documents, registry.value.previousRegistry));
   }
   for (const [key, record] of actual) {
     if (!expected.has(key) || canonicalJson(expected.get(key)) !== canonicalJson(record)) {
@@ -72,10 +73,12 @@ export function admitPublicHistory(root, operations, { requireCurrentDocuments =
   for (const seed of seedRecords()) if (actual.get(seed.key)?.recordSha256 !== seed.recordSha256) throw new Error("Required project bootstrap record is missing.");
   if (requireCurrentDocuments) {
     if (!latestRegistry) throw new Error("Canonical document registry missing; run oh:record:docs after narrative review.");
-    const current = documentRecords(DOCUMENT_PATHS.map(path => readDocument(root, path)), latestRegistry.value.previousRegistry).at(-1);
+    const current = documentRecordsV2(DOCUMENT_PATHS.map(path => readDocument(root, path)), latestRegistry.value.previousRegistry).at(-1);
     if (canonicalJson(latestRegistry) !== canonicalJson(current)) throw new Error("Markdown differs from the latest canonical document editions; review and record the change explicitly.");
     for (const [path, edition] of currentReports) {
-      const input = readReport(root, path, path === "artifacts/clue-transfer.json" ? validateClueTransfer : validateCalibration);
+      const experiment = experimentByPath(path);
+      if (!experiment) throw new Error("Unsupported current experiment path.");
+      const input = readReport(root, path, experiment.validate);
       if (input.sha256 !== edition.value.sha256 || canonicalJson(input.report) !== canonicalJson(edition.value.report)) {
         throw new Error("Published report bytes disagree with the latest stored experiment edition.");
       }

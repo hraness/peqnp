@@ -29,23 +29,30 @@ After generating and independently reviewing an experiment artifact, record the 
 ```sh
 bun run oh:record
 bun run oh:record:transfer
+bun run oh:record:indexed
+bun run oh:record:implication
 bun run oh:record:research
+bun run oh:record:research:v2
 bun run oh:verify
 ```
 
-`oh:record` ingests `artifacts/calibration.json`; `oh:record:transfer` ingests `artifacts/clue-transfer.json`. Run the command for the observation being added. An explicit alternative repository-relative path is accepted by `bun scripts/oh-ledger.mjs record relative-report.json` or `record-transfer relative-report.json`, but the current publication profile admits only the two named artifact paths. Extend the reviewed profile before publishing another experiment.
+`oh:record` ingests `artifacts/calibration.json`; `oh:record:transfer` ingests `artifacts/clue-transfer.json`; `oh:record:indexed` ingests `artifacts/indexed-transfer.json`; `oh:record:implication` ingests `artifacts/implication-calibration.json`. Run the command for the observation being added. An explicit alternative repository-relative path is accepted by `bun scripts/oh-ledger.mjs record relative-report.json`, `record-transfer relative-report.json`, `record-indexed relative-report.json`, or `record-implication relative-report.json`, but the current publication profile in `scripts/oh-experiments.mjs` admits only the four named artifact paths. Extend the reviewed profile before publishing another experiment.
 
 The calibration validator requires the two-variable, eight-program contract, complete coverage counters, selected survivor, rejected false-completeness control, and absence of a kernel proof. Transfer validation requires the fixed protocol, all 24 mining candidates and four accepted rules, 122 named evaluation cases, shared one-million-event budgets, valid finite outcomes, category sums, and consistent case/family/aggregate totals. It checks the report's protocol digest against the protocol bytes. It independently checks the tiny mining truth table, but does not reproduce held-out generation, labels, or measured solver costs. The experiment checks own those claims.
 
-The transfer observation preserves the negative result: its assertion is `bounded-observation`, and its comparison proposition asserts no performance improvement. Evidence includes the frozen rule array's canonical SHA-256, numeric summary, and acquisition/online costs. Source hashes describe files observed at ingestion; they are not an attestation that those files generated the supplied report.
+The indexed-transfer validator requires the fixed protocol digest, the same four accepted rules compiled to one schema, the 160 named fresh cases with their parameters and effective seeds, the 16 duplicate-pressure controls regenerated exactly, random-case clause counts and widths, complete reference coverage counters, shared one-million-event budgets for all three arms, category sums, decisions that agree with the reference label, unknown outcomes only on an exhausted budget, index counters consistent with the eligible binary clauses and derived units, and the protocol's generic/indexed equivalence label with equal derived units and residual counters wherever that label requires them. It recomputes the aggregate summary, every family summary, all three pairwise comparisons, and the setup-plus-online totals. The implication-calibration validator requires the fixed protocol digest, the same frozen library, the 120 named cases with the engineered families regenerated exactly and their stated backbone or UNSAT expectations, random-case shape, the reference backbone defined exactly when the model count is positive, budgets and category sums for the local, DPLL, and graph phases, decisions that agree with the reference, no clues or backbone claim on UNSAT rows, complete graph backbones equal to the reference and local units contained in it, and checker counters that match the reported certificates and clues. It re-checks every SAT certificate, UNSAT opposite-path certificate, and clue path directly against the raw clauses, then recomputes the summary, family summaries, coverage counters, the decision comparison, and the outside-arm totals. Neither validator reproduces held-out generation, truth-table labels, or measured event costs; the experiment checks own those claims.
+
+The transfer, indexed-transfer, and implication observations preserve their negative or calibration results: each assertion is `bounded-observation`, and each comparison proposition asserts no performance improvement. Evidence includes the frozen rule array's canonical SHA-256, the numeric summary, and acquisition, compilation, or outside-arm costs; the implication evidence also carries the coverage counters and the decision-comparison declaration. Source hashes describe files observed at ingestion; they are not an attestation that those files generated the supplied report.
 
 `oh:record:research` adds the reviewed definitions in `scripts/research-records.mjs`: signed-renaming soundness, the finite total-cost lesson, the longer binary-backbone family, the conditional strong-backdoor result, and the next inquiry. Their linked statement, assertion, and evidence records contain proof steps, assumptions, citations, limitations, and explicit informal or bounded status. Ingestion requires the full admitted history and the exact existing transfer edition/evidence dependency. Later source changes cannot silently retarget those arguments. Append versioned definitions when changing a reviewed argument or its evidence, and retain prior seed, experiment, and research constructors: historical operations must remain admissible and replayable.
+
+`oh:record:research:v2` adds the reviewed definitions in `scripts/research-records-v2.mjs`: the interface-delta definition and its coNP-hardness reading, the indexed-transfer total-cost lesson, the implication-calibration coverage-and-decision lesson, and the next inquiry on expensive residuals. It requires the exact indexed-transfer and implication-calibration editions and evidence and the v1 research records to exist already.
 
 Each observation/source identity gets additive records. Reingesting identical report bytes at the same path with identical source hashes is a no-op. Equal bytes at another path conflict with the original edition rather than rewriting provenance. Existing records cannot be replaced through these commands.
 
 ## Record narrative editions and publish the history
 
-The fixed narrative set is the research proposal, knowledge framework, clue-transfer theory, two experiment reports, and frozen clue-transfer protocol. After reviewing edits to those six files:
+The v2 narrative set retains the original six v1 files (proposal, knowledge framework, clue-transfer theory, two experiment reports, and transfer protocol) and adds the indexed-transfer and implication-calibration protocols and reports. The v1 six-file constructor remains available for historical replay; v2 explicitly admits the ten-file set. After the protocols and reports are finalized and their edits reviewed:
 
 ```sh
 bun run oh:record:docs
@@ -54,7 +61,7 @@ bun run check:ledger
 bun run check
 ```
 
-`oh:record:docs` records each Markdown body and its SHA-256, plus a versioned canonical-document registry. Unchanged current content is a no-op. Each changed registry references its predecessor; reverting from document A to B and back to A activates the old A edition through a new registry without erasing B.
+`oh:record:docs` records each Markdown body and its SHA-256, plus a versioned canonical-document registry. Unchanged current content is a no-op. Each changed registry references its predecessor, including across v1-to-v2 activation; reverting from document A to B and back to A activates the old A edition through a new registry without erasing B.
 
 `oh:export` verifies the local operation history, reconstructs every historical record through the reviewed project constructors, checks current document/report parity, and requires the existing bundle to be an exact prefix. A matching profile label alone cannot admit an unrelated record. Every newly exported document edition must match the current Markdown unless it already appears in the existing local bundle. An intermediate edition that differs from the current files and is absent from that prior bundle is rejected. This is a content-consistency rule, not a detector of private information. An existing local export is not automatically reviewed or published. Preserve refused state and obtain a separate explicit review of its publication scope; these commands do not purge or rewrite it.
 
@@ -103,4 +110,4 @@ bun run check:oh
 bun run check:ledger
 ```
 
-Tests cover the experiment contracts and additive writes, fresh-clone exact replay, idempotence, prefix and divergent histories, tampering, missing/partial manifests, path guards, document updates/reverts, and rejection of unrelated or hidden intermediate records. Test databases are disposable and never constitute research evidence. The final repository gate separately reproduces the experiment artifacts.
+Tests cover the four experiment contracts and additive writes, fresh-clone exact replay, idempotence, prefix and divergent histories, tampering, missing/partial manifests, path guards, document updates/reverts, allowlist admission of the newer experiments, and rejection of unrelated, forged, or hidden intermediate records. Test databases are disposable and never constitute research evidence. The final repository gate separately checks all three protocol digests and reproduces the four experiment artifacts byte for byte.

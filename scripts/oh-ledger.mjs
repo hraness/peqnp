@@ -338,7 +338,8 @@ export function recordClueTransfer(root, relativePath) {
 
 export async function main(args = process.argv.slice(2)) {
   const [command, input, ...extra] = args;
-  if (extra.length || (!["record", "record-transfer"].includes(command) && input !== undefined)) throw new Error("Unexpected arguments.");
+  const recordCommands = ["record", "record-transfer", "record-indexed", "record-implication"];
+  if (extra.length || (!recordCommands.includes(command) && input !== undefined)) throw new Error("Unexpected arguments.");
   if (command === "contract") return inspectContract();
   if (command === "init") {
     const { restoreSnapshot } = await import("./oh-snapshot.mjs");
@@ -346,12 +347,17 @@ export async function main(args = process.argv.slice(2)) {
   }
   if (command === "record" && input) return recordCalibration(repositoryRoot, input);
   if (command === "record-transfer" && input) return recordClueTransfer(repositoryRoot, input);
+  if (["record-indexed", "record-implication"].includes(command) && input) {
+    // Dynamic import keeps the record module's dependency on this file acyclic at load time.
+    const { recordIndexedTransfer, recordImplicationCalibration } = await import("./oh-experiment-records.mjs");
+    return (command === "record-indexed" ? recordIndexedTransfer : recordImplicationCalibration)(repositoryRoot, input);
+  }
   if (command === "verify") {
     const oh = openLedger(repositoryRoot);
     try { return { database: ".oh/research.sqlite", space: SPACE, verification: oh.verify() }; }
     finally { oh.store.close(); }
   }
-  throw new Error("Usage: bun scripts/oh-ledger.mjs <contract|init|verify|record relative-report.json|record-transfer relative-report.json>");
+  throw new Error("Usage: bun scripts/oh-ledger.mjs <contract|init|verify|record relative-report.json|record-transfer relative-report.json|record-indexed relative-report.json|record-implication relative-report.json>");
 }
 
 if (import.meta.main) {

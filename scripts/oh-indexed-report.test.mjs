@@ -1,0 +1,144 @@
+import { afterEach, expect, test } from "bun:test";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { canonicalSha256 } from "@hraness/oh";
+import { initializeLedger, openLedger } from "./oh-ledger.mjs";
+import { recordIndexedTransfer } from "./oh-experiment-records.mjs";
+import { INDEXED_PROTOCOL_SHA256, validateIndexedTransfer } from "./oh-indexed-report.mjs";
+
+const roots = [];
+const reportBytes = readFileSync(new URL("../artifacts/indexed-transfer.json", import.meta.url));
+const protocolBytes = readFileSync(new URL("../experiments/indexed-transfer-protocol.md", import.meta.url));
+const report = () => JSON.parse(reportBytes);
+function root() {
+  const path = mkdtempSync(join(tmpdir(), "peqnp-indexed-ledger-test-"));
+  roots.push(path);
+  for (const directory of ["artifacts", "experiments", "src"]) mkdirSync(join(path, directory));
+  for (const file of ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml"]) writeFileSync(join(path, file), "# synthetic source fixture\n");
+  writeFileSync(join(path, "src/lib.rs"), "// Synthetic source fixture, not experimental provenance.\n");
+  writeFileSync(join(path, "artifacts/indexed-transfer.json"), reportBytes);
+  writeFileSync(join(path, "experiments/indexed-transfer-protocol.md"), protocolBytes);
+  return path;
+}
+afterEach(() => { for (const path of roots.splice(0)) rmSync(path, { recursive: true, force: true }); });
+const complete = actual => actual.observations.findIndex(row => row.generic_indexed_equivalence === "complete-arms-exact" && row.generic.derived_units.length > 0);
+const exhausted = actual => actual.observations.findIndex(row => row.generic_indexed_equivalence === "not-comparable-budget");
+
+test("indexed report preserves the complete fresh corpus and rejects proof, protocol, coverage and library changes", () => {
+  const actual = report();
+  expect(actual.protocol_sha256).toBe(INDEXED_PROTOCOL_SHA256);
+  expect(validateIndexedTransfer(actual)).toBe(actual);
+  expect(complete(actual)).toBeGreaterThanOrEqual(0);
+  expect(exhausted(actual)).toBeGreaterThanOrEqual(0);
+  const proof = report();
+  proof.proof_status = "proved-generally";
+  expect(() => validateIndexedTransfer(proof)).toThrow("without a formal-proof");
+  const protocol = report();
+  protocol.protocol_sha256 = "0".repeat(64);
+  expect(() => validateIndexedTransfer(protocol)).toThrow("without a formal-proof");
+  const missing = report();
+  missing.observations.pop();
+  expect(() => validateIndexedTransfer(missing)).toThrow("every fixed held-out");
+  const duplicate = report();
+  duplicate.observations[1] = duplicate.observations[0];
+  expect(() => validateIndexedTransfer(duplicate)).toThrow("duplicate");
+  const renamed = report();
+  renamed.observations[0].seed = 1;
+  expect(() => validateIndexedTransfer(renamed)).toThrow("fixed corpus");
+  const control = report();
+  control.observations.find(row => row.family === "duplicate-star-positive").input[0][1] *= -1;
+  expect(() => validateIndexedTransfer(control)).toThrow("Engineered control input");
+  const rule = report();
+  rule.frozen_library.rules[0].conclusion *= -1;
+  expect(() => validateIndexedTransfer(rule)).toThrow("accepted mining rules");
+  const fewer = report();
+  fewer.frozen_library.rules.pop();
+  expect(() => validateIndexedTransfer(fewer)).toThrow("exactly four rule instances");
+  const extra = report();
+  extra.speedup_claim = true;
+  expect(() => validateIndexedTransfer(extra)).toThrow("Unexpected indexed-transfer report fields");
+});
+
+test("numeric consistency rejects invented gains, omitted work, wrong answers, unexhausted unknowns and broken equivalence", () => {
+  const gain = report();
+  gain.summary.comparisons.indexed_vs_generic.left_better++;
+  expect(() => validateIndexedTransfer(gain)).toThrow("Summary differs");
+  const family = report();
+  family.families["random-2cnf"].arms.indexed.total_work_units--;
+  expect(() => validateIndexedTransfer(family)).toThrow("Family summary differs");
+  const work = report();
+  work.observations[0].indexed.arm.preprocessing.work_units--;
+  expect(() => validateIndexedTransfer(work)).toThrow("categories do not sum");
+  const answer = report();
+  answer.observations[0].indexed.arm.outcome = answer.observations[0].reference_sat ? "unsat" : "sat";
+  expect(() => validateIndexedTransfer(answer)).toThrow("disagrees");
+  const unknown = report();
+  unknown.observations[0].generic.outcome = "unknown-budget";
+  expect(() => validateIndexedTransfer(unknown)).toThrow("exhausted work budget");
+  const setup = report();
+  setup.setup_plus_online.indexed_work_units--;
+  expect(() => validateIndexedTransfer(setup)).toThrow("Setup-plus-online");
+  const label = report();
+  label.observations[exhausted(label)].generic_indexed_equivalence = "complete-arms-exact";
+  expect(() => validateIndexedTransfer(label)).toThrow("Equivalence label");
+  const units = report();
+  units.observations[complete(units)].generic.derived_units = [];
+  expect(() => validateIndexedTransfer(units)).toThrow("derived units differ");
+  const residual = report();
+  const row = residual.observations[complete(residual)];
+  row.indexed.arm.residual.clause_reads++;
+  row.indexed.arm.residual.work_units++;
+  row.indexed.arm.total_work_units++;
+  expect(() => validateIndexedTransfer(residual)).toThrow("residual counters differ");
+  const index = report();
+  index.observations[0].indexed.index.entries++;
+  expect(() => validateIndexedTransfer(index)).toThrow("Index entry count");
+  const overflow = report();
+  overflow.setup.acquisition.work_units = Number.MAX_SAFE_INTEGER + 1;
+  expect(() => validateIndexedTransfer(overflow)).toThrow("safe event count");
+});
+
+test("local ingestion is additive, repeatable, and records costs without a speedup proposition", () => {
+  const path = root();
+  initializeLedger(path);
+  const first = recordIndexedTransfer(path, "artifacts/indexed-transfer.json");
+  expect(first.inserted).toBe(5);
+  expect(first.verification.records).toBe(11);
+  const second = recordIndexedTransfer(path, "artifacts/indexed-transfer.json");
+  expect(second.inserted).toBe(0);
+  expect(second.verification).toEqual(first.verification);
+  const oh = openLedger(path);
+  try {
+    const observation = oh.list({ kind: "assertion", limit: 20 }).find(record => record.key.startsWith("assertion:indexed-transfer-"));
+    expect(observation.value.stance).toBe("bounded-observation");
+    expect(observation.value.formalProofAccepted).toBe(false);
+    expect(observation.value.statement).toBe("statement:indexed-transfer-v1-comparison");
+    expect(oh.get("statement:indexed-transfer-v1-comparison").value.domain).toContain("no total-work improvement");
+    expect(oh.get("edition:indexed-transfer-" + first.reportSha256).value.path).toBe("artifacts/indexed-transfer.json");
+    const evidence = oh.list({ kind: "evidence", limit: 20 }).find(record => record.key.startsWith("evidence:indexed-transfer-"));
+    expect(evidence.value.kind).toBe("finite-indexed-transfer-comparison-report");
+    expect(evidence.value.measuredSummary).toEqual(report().summary);
+    expect(evidence.value.frozenLibrarySha256).toBe(canonicalSha256(report().frozen_library.rules));
+    expect(evidence.value.setupPlusOnlineWorkUnits).toEqual(report().setup_plus_online);
+    expect(evidence.value.compilationWorkUnits).toBe(report().setup.compilation.work_units);
+    expect(evidence.value.formalProofAccepted).toBe(false);
+    expect(oh.get("assertion:p-equals-np-hypothesis").value.stance).toBe("research-hypothesis");
+  } finally { oh.store.close(); }
+});
+
+test("invalid report and changed protocol fail before initializing or changing research state", () => {
+  const path = root();
+  const wrong = report();
+  wrong.summary.comparisons.indexed_vs_baseline.left_worse--;
+  writeFileSync(join(path, "artifacts/indexed-transfer.json"), JSON.stringify(wrong));
+  expect(() => recordIndexedTransfer(path, "artifacts/indexed-transfer.json")).toThrow("Summary differs");
+  expect(existsSync(join(path, ".oh"))).toBe(false);
+  writeFileSync(join(path, "artifacts/indexed-transfer.json"), reportBytes);
+  const initial = initializeLedger(path);
+  writeFileSync(join(path, "experiments/indexed-transfer-protocol.md"), "changed protocol\n");
+  expect(() => recordIndexedTransfer(path, "artifacts/indexed-transfer.json")).toThrow("fixed protocol identity");
+  const oh = openLedger(path);
+  expect(oh.verify()).toEqual(initial.verification);
+  oh.store.close();
+});

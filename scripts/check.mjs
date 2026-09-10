@@ -39,19 +39,30 @@ run("cargo", ["test", "--locked"]);
 run("bun", ["run", "check:oh"]);
 run("bun", ["run", "check:ledger"]);
 
-const transfer = JSON.parse(readFileSync(resolve(root, "artifacts/clue-transfer.json"), "utf8"));
-const protocolHash = createHash("sha256")
-  .update(readFileSync(resolve(root, "experiments/clue-transfer-protocol.md")))
-  .digest("hex");
-if (transfer.protocol_sha256 !== protocolHash) {
-  throw new Error("Clue-transfer report does not identify the checked-in protocol");
+const PROTOCOLS = [
+  ["artifacts/clue-transfer.json", "experiments/clue-transfer-protocol.md"],
+  ["artifacts/indexed-transfer.json", "experiments/indexed-transfer-protocol.md"],
+  ["artifacts/implication-calibration.json", "experiments/implication-protocol.md"],
+];
+for (const [artifact, protocol] of PROTOCOLS) {
+  const report = JSON.parse(readFileSync(resolve(root, artifact), "utf8"));
+  const protocolHash = createHash("sha256").update(readFileSync(resolve(root, protocol))).digest("hex");
+  if (report.protocol_sha256 !== protocolHash) {
+    throw new Error(`${artifact} does not identify the checked-in ${protocol}`);
+  }
 }
 
 const scratchRoot = resolve(root, ".work");
 mkdirSync(scratchRoot, { recursive: true });
 const scratch = mkdtempSync(resolve(scratchRoot, "replay-"));
 try {
-  for (const [command, filename] of [["experiment", "calibration.json"], ["transfer", "clue-transfer.json"]]) {
+  const replays = [
+    ["experiment", "calibration.json"],
+    ["transfer", "clue-transfer.json"],
+    ["indexed", "indexed-transfer.json"],
+    ["implication", "implication-calibration.json"],
+  ];
+  for (const [command, filename] of replays) {
     const report = resolve(scratch, filename);
     run("cargo", ["run", "--locked", "--release", "--", command, report]);
     if (!readFileSync(report).equals(readFileSync(resolve(root, "artifacts", filename)))) {
@@ -63,4 +74,4 @@ try {
 }
 run("git", ["diff", "--check"]);
 run("git", ["diff", "--cached", "--check"]);
-console.log("All checks passed; the canonical ledger replayed and both experiments reproduced byte for byte.");
+console.log("All checks passed; the canonical ledger replayed, three protocol digests matched, and all four experiments reproduced byte for byte.");

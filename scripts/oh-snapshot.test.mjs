@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { canonicalJson, createKnowledgeGraphRecordV1, createOhSyncBundleV1 } from "@hraness/oh";
 import { PROFILE, SPACE, commitAdditive, initializeLedger, openLedger } from "./oh-ledger.mjs";
 import { DOCUMENT_PATHS, recordDocuments } from "./oh-documents.mjs";
-import { recordFragmentInterface, recordImplicationCalibration, recordIndexedTransfer } from "./oh-experiment-records.mjs";
+import { recordExtractionCost, recordFragmentInterface, recordImplicationCalibration, recordIndexedTransfer } from "./oh-experiment-records.mjs";
 import { checkSnapshot, exportSnapshot, restoreSnapshot } from "./oh-snapshot.mjs";
 
 const roots = [];
@@ -213,7 +213,7 @@ test("clean latest Markdown cannot conceal an unreviewed intermediate private ed
   reopened.store.close();
 });
 
-// The three newest experiments enter the public snapshot only through their
+// The four newest experiments enter the public snapshot only through their
 // reviewed constructors; a forged activity under the same prefix is refused.
 function experimentFixture(path) {
   mkdirSync(join(path, "artifacts"), { recursive: true });
@@ -224,22 +224,26 @@ function experimentFixture(path) {
     ["indexed-transfer.json", "indexed-transfer-protocol.md"],
     ["implication-calibration.json", "implication-protocol.md"],
     ["fragment-interface.json", "fragment-interface-protocol.md"],
+    ["extraction-cost.json", "extraction-cost-protocol.md"],
   ]) {
     writeFileSync(join(path, "artifacts", artifact), readFileSync(new URL("../artifacts/" + artifact, import.meta.url)));
     writeFileSync(join(path, "experiments", protocol), readFileSync(new URL("../experiments/" + protocol, import.meta.url)));
   }
 }
 
-test("indexed-transfer, implication-calibration and fragment-interface observations are admitted through the allowlist and forged activities are refused", () => {
+test("indexed-transfer, implication-calibration, fragment-interface and extraction-cost observations are admitted through the allowlist and forged activities are refused", () => {
   const path = root();
   experimentFixture(path);
   bootstrap(path);
   const indexed = recordIndexedTransfer(path, "artifacts/indexed-transfer.json");
   const implication = recordImplicationCalibration(path, "artifacts/implication-calibration.json");
   const fragment = recordFragmentInterface(path, "artifacts/fragment-interface.json");
+  const extraction = recordExtractionCost(path, "artifacts/extraction-cost.json");
   expect(indexed.inserted).toBe(5);
   expect(implication.inserted).toBe(5);
   expect(fragment.inserted).toBe(5);
+  // The extraction report is stored as one edition plus observation parts.
+  expect(extraction.inserted).toBeGreaterThan(5);
   const exported = exportSnapshot(path);
   expect(checkSnapshot(path).verification).toEqual(exported.verification);
   const clone = root();
@@ -254,12 +258,13 @@ test("indexed-transfer, implication-calibration and fragment-interface observati
     "edition:indexed-transfer-" + indexed.reportSha256,
     "edition:implication-calibration-" + implication.reportSha256,
     "edition:fragment-interface-" + fragment.reportSha256,
+    "edition:extraction-cost-" + extraction.reportSha256,
   ]));
   const oh = openLedger(path);
   let after;
   try {
     const activities = oh.list({ kind: "activity", limit: 20 });
-    const forged = ["activity:indexed-transfer-", "activity:fragment-interface-"].map(prefix => {
+    const forged = ["activity:indexed-transfer-", "activity:fragment-interface-", "activity:extraction-cost-"].map(prefix => {
       const genuine = activities.find(record => record.key.startsWith(prefix));
       return createKnowledgeGraphRecordV1({ v: 1, key: prefix + "f".repeat(64), kind: "activity", dependencies: genuine.dependencies,
         value: JSON.parse(canonicalJson({ ...genuine.value, authority: "Forged synthetic activity, not a reviewed ingestion." })) });

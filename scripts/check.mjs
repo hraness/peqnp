@@ -44,6 +44,7 @@ const PROTOCOLS = [
   ["artifacts/indexed-transfer.json", "experiments/indexed-transfer-protocol.md"],
   ["artifacts/implication-calibration.json", "experiments/implication-protocol.md"],
   ["artifacts/fragment-interface.json", "experiments/fragment-interface-protocol.md"],
+  ["artifacts/extraction-cost.json", "experiments/extraction-cost-protocol.md"],
 ];
 for (const [artifact, protocol] of PROTOCOLS) {
   const report = JSON.parse(readFileSync(resolve(root, artifact), "utf8"));
@@ -63,6 +64,7 @@ try {
     ["indexed", "indexed-transfer.json"],
     ["implication", "implication-calibration.json"],
     ["fragment", "fragment-interface.json"],
+    ["extraction", "extraction-cost.json"],
   ];
   for (const [command, filename] of replays) {
     const report = resolve(scratch, filename);
@@ -76,4 +78,4 @@ try {
 }
 run("git", ["diff", "--check"]);
 run("git", ["diff", "--cached", "--check"]);
-console.log("All checks passed; the canonical ledger replayed, four protocol digests matched, and all five experiments reproduced byte for byte.");
+console.log("All checks passed; the canonical ledger replayed, five protocol digests matched, and all six experiments reproduced byte for byte.");

@@ -46,7 +46,7 @@ pub struct FragmentArm {
 }
 
 impl FragmentArm {
-    fn empty() -> Self {
+    pub(crate) fn empty() -> Self {
         Self {
             outcome: Outcome::Unknown,
             certificate: None,
@@ -85,7 +85,7 @@ impl FragmentArm {
 
 /// Run one phase on the shared meter and snapshot its charge as a difference.
 /// Budget exhaustion yields `None`; every other failure propagates.
-fn phase<T>(
+pub(crate) fn phase<T>(
     meter: &mut Meter,
     slot: &mut Work,
     run: impl FnOnce(&mut Meter) -> Result<T, Failure>,
@@ -102,7 +102,7 @@ fn phase<T>(
 
 /// Exhaustion anywhere means unknown: no certificate, no clue, no unit, and
 /// the spent budget reported in full.
-fn exhausted(mut arm: FragmentArm, meter: Meter) -> FragmentArm {
+pub(crate) fn exhausted(mut arm: FragmentArm, meter: Meter) -> FragmentArm {
     arm.outcome = Outcome::Unknown;
     arm.certificate = None;
     arm.clues = Vec::new();
@@ -251,7 +251,7 @@ fn draw(rng: &mut Rng, variables: u32, width: usize) -> Vec<i32> {
 }
 
 /// `t*n` ternary clauses followed by `b` binary clauses from one generator.
-fn random(variables: u32, density: u32, binary: u32, seed: u64) -> Cnf {
+pub(crate) fn random(variables: u32, density: u32, binary: u32, seed: u64) -> Cnf {
     let mut rng = Rng(seed);
     let mut formula = Vec::new();
     for _ in 0..variables * density {
@@ -559,7 +559,7 @@ pub struct BaselineSummary {
 }
 
 impl BaselineSummary {
-    fn include(&mut self, arm: &Arm) -> Result<(), Failure> {
+    pub(crate) fn include(&mut self, arm: &Arm) -> Result<(), Failure> {
         add(&mut self.work_units, arm.total_work())?;
         add(&mut self.search_nodes, arm.residual.search_nodes)?;
         increment(match arm.outcome {
@@ -568,7 +568,7 @@ impl BaselineSummary {
             Outcome::Unknown => &mut self.unknown,
         })
     }
-    fn json(&self) -> String {
+    pub(crate) fn json(&self) -> String {
         format!(
             "{{\"work_units\":{},\"search_nodes\":{},\"complete\":{},\"sat\":{},\"unsat\":{},\"unknown\":{}}}",
             self.work_units,
@@ -600,7 +600,7 @@ pub struct FragmentSummary {
 }
 
 impl FragmentSummary {
-    fn include(&mut self, arm: &FragmentArm) -> Result<(), Failure> {
+    pub(crate) fn include(&mut self, arm: &FragmentArm) -> Result<(), Failure> {
         add(
             &mut self.construction_work_units,
             arm.construction.work_units,
@@ -629,7 +629,7 @@ impl FragmentSummary {
             Outcome::Unknown => &mut self.unknown,
         })
     }
-    fn json(&self) -> String {
+    pub(crate) fn json(&self) -> String {
         format!(
             concat!(
                 "{{\"phases\":{{\"construction_work_units\":{},\"components_work_units\":{},",
@@ -671,7 +671,7 @@ pub struct Comparison {
 }
 
 impl Comparison {
-    fn include(&mut self, left: Option<u64>, right: Option<u64>) -> Result<(), Failure> {
+    pub(crate) fn include(&mut self, left: Option<u64>, right: Option<u64>) -> Result<(), Failure> {
         match (left, right) {
             (Some(left), Some(right)) => {
                 increment(&mut self.both_complete)?;
@@ -686,7 +686,7 @@ impl Comparison {
             (None, None) => increment(&mut self.both_unknown),
         }
     }
-    fn json(&self) -> String {
+    pub(crate) fn json(&self) -> String {
         format!(
             "{{\"both_complete\":{},\"left_better\":{},\"tied\":{},\"left_worse\":{},\"left_complete_only\":{},\"right_complete_only\":{},\"both_unknown\":{}}}",
             self.both_complete, self.left_better, self.tied, self.left_worse, self.left_complete_only, self.right_complete_only, self.both_unknown
@@ -696,7 +696,7 @@ impl Comparison {
 
 /// A descriptive ratio as a JSON number with three decimals, computed with
 /// integer arithmetic (nearest rounding); `null` when undefined.
-fn ratio(numerator: u64, denominator: u64) -> String {
+pub(crate) fn ratio(numerator: u64, denominator: u64) -> String {
     if denominator == 0 {
         return "null".into();
     }
@@ -752,7 +752,7 @@ impl Summary {
             (row.baseline.outcome != Outcome::Unknown).then(|| row.baseline.total_work());
         self.fragment_vs_baseline.include(fragment, baseline)
     }
-    fn json(&self) -> String {
+    pub(crate) fn json(&self) -> String {
         format!(
             concat!(
                 "{{\"cases\":{},\"reference_sat\":{},\"reference_unsat\":{},\"reference_work_units\":{},",
@@ -847,7 +847,7 @@ pub fn experiment() -> Result<Experiment, Failure> {
 // Deterministic reporting. Formatting is outside every meter.
 
 impl FragmentArm {
-    fn json(&self) -> String {
+    pub(crate) fn json(&self) -> String {
         let mut clues = String::from("[");
         for (index, clue) in self.clues.iter().enumerate() {
             if index > 0 {

@@ -1,10 +1,13 @@
 import { canonicalJson, canonicalSha256 } from "@hraness/oh";
 import { readReport, seedRecords } from "./oh-ledger.mjs";
 import { experimentById, experimentByPath } from "./oh-experiments.mjs";
-import { documentRecordsForSchema, documentRecordsV3, DOCUMENT_PATHS, DOCUMENT_REGISTRY_PREFIX, readDocument } from "./oh-documents.mjs";
+import { editionReport } from "./oh-experiment-records.mjs";
+import { documentRecordsForSchema, documentRecordsV4, DOCUMENT_PATHS, DOCUMENT_REGISTRY_PREFIX, readDocument } from "./oh-documents.mjs";
 import { researchRecords } from "./research-records.mjs";
 import { researchRecordsV2 } from "./research-records-v2.mjs";
 import { researchRecordsV3 } from "./research-records-v3.mjs";
+import { researchRecordsV4 } from "./research-records-v4.mjs";
+import { researchRecordsV5 } from "./research-records-v5.mjs";
 
 function sourceIdentity(source) {
   const meaning = "Source bytes observed at ingestion; not an attestation that these bytes produced the supplied result.";
@@ -34,7 +37,8 @@ export function admitPublicHistory(root, operations, { requireCurrentDocuments =
       if (change.record.value.previousRegistry !== (latestRegistry?.key ?? null)) throw new Error("Document activation must extend the previous canonical registry.");
       latestRegistry = change.record;
     }
-    if (change.record.kind === "edition" && change.record.value.mediaType === "application/json") {
+    // Observation-part editions carry `reportSha256`; only the whole edition names the current report.
+    if (change.record.kind === "edition" && change.record.value.mediaType === "application/json" && change.record.value.sha256) {
       currentReports.set(change.record.value.path, change.record);
     }
   }
@@ -44,6 +48,8 @@ export function admitPublicHistory(root, operations, { requireCurrentDocuments =
   add(researchRecords());
   add(researchRecordsV2());
   add(researchRecordsV3());
+  add(researchRecordsV4());
+  add(researchRecordsV5());
   for (const activity of actual.values()) {
     if (activity.kind !== "activity") continue;
     const experiment = experimentById(activity.value.experiment);
@@ -51,7 +57,7 @@ export function admitPublicHistory(root, operations, { requireCurrentDocuments =
     const path = experiment.path;
     const edition = activity.dependencies.map(key => actual.get(key)).find(record => record?.kind === "edition" && record.value.path === path);
     if (!edition) throw new Error("Unrecognized experiment edition path.");
-    const input = { path, sha256: edition.value.sha256, report: edition.value.report };
+    const input = { path, sha256: edition.value.sha256, report: editionReport(edition, key => actual.get(key)) };
     if (!/^[a-f0-9]{64}$/.test(input.sha256)) throw new Error("Invalid report byte identity.");
     experiment.validate(input.report);
     sourceIdentity(activity.value.source);
@@ -75,13 +81,13 @@ export function admitPublicHistory(root, operations, { requireCurrentDocuments =
   for (const seed of seedRecords()) if (actual.get(seed.key)?.recordSha256 !== seed.recordSha256) throw new Error("Required project bootstrap record is missing.");
   if (requireCurrentDocuments) {
     if (!latestRegistry) throw new Error("Canonical document registry missing; run oh:record:docs after narrative review.");
-    const current = documentRecordsV3(DOCUMENT_PATHS.map(path => readDocument(root, path)), latestRegistry.value.previousRegistry).at(-1);
+    const current = documentRecordsV4(DOCUMENT_PATHS.map(path => readDocument(root, path)), latestRegistry.value.previousRegistry).at(-1);
     if (canonicalJson(latestRegistry) !== canonicalJson(current)) throw new Error("Markdown differs from the latest canonical document editions; review and record the change explicitly.");
     for (const [path, edition] of currentReports) {
       const experiment = experimentByPath(path);
       if (!experiment) throw new Error("Unsupported current experiment path.");
       const input = readReport(root, path, experiment.validate);
-      if (input.sha256 !== edition.value.sha256 || canonicalJson(input.report) !== canonicalJson(edition.value.report)) {
+      if (input.sha256 !== edition.value.sha256 || canonicalJson(input.report) !== canonicalJson(editionReport(edition, key => actual.get(key)))) {
         throw new Error("Published report bytes disagree with the latest stored experiment edition.");
       }
     }

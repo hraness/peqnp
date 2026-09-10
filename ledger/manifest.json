@@ -5,20 +5,20 @@
   "contractSha256": "e53ae573c2af417082be9f554d0f6f3e317f054daf745181f462608e3f622594",
   "bundle": {
     "path": "ledger/operations.json",
-    "sha256": "151e404aaf11bcfdc3f90702406de7a69e7ecf6b819a40cc26a70e9e8b2cd093",
-    "bundleSha256": "b987df5c114d154359bd211e9bb8bbe057048513ad99c39ab35225520f54eaac"
+    "sha256": "1bd98fce3066ee41ac227980f46c398731903be45d38d8a48ccb03a10e06d709",
+    "bundleSha256": "c8df1cf75bf00f776853a1271b68183be51e6aa04a375c7fa84afc49b1dc41af"
   },
   "verification": {
     "head": {
-      "generation": 13,
-      "graphRevisionSha256": "aa9b4c1fa3632156244708dd97c5dff891f87daac20b59d94629bc7cbd38524e",
-      "operationSha256": "4fa68ce8c7e969319eea2d1d9bb3a2dfd8ccbb7d0a227f0fd6cbff204303e9d9",
-      "recordsSha256": "27935929b2983b1f0e9acc3e93d08677e6282ac08ff28c4a86336df63082d63f",
-      "sequence": 13,
+      "generation": 17,
+      "graphRevisionSha256": "a73dec56d3d6aa0ebf11b40ab389843269fbe19a09f72830df35d67a13799bb4",
+      "operationSha256": "6baf3e9c83d597b458263b550ca8d3ffa77e724f51a1475d525e573f4b5f83bb",
+      "recordsSha256": "f1c52352843d35070b9619476cbf76ddca92428a2e0aa0d7a9f5b60e6887674e",
+      "sequence": 17,
       "v": 1
     },
-    "operations": 13,
-    "records": 84,
+    "operations": 17,
+    "records": 105,
     "sqliteIntegrity": "ok",
     "v": 1
   },

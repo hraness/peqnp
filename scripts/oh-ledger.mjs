@@ -9,6 +9,7 @@ import {
   sha256Hex,
 } from "@hraness/oh";
 import { Oh } from "@hraness/oh/sdk";
+import { validateClueTransfer } from "./oh-transfer-report.mjs";
 
 export const CONTRACT_SHA256 = "e53ae573c2af417082be9f554d0f6f3e317f054daf745181f462608e3f622594";
 export const SPACE = "peqnp";
@@ -197,7 +198,7 @@ export function validateCalibration(report) {
   return report;
 }
 
-export function readReport(root, relativePath) {
+export function readReport(root, relativePath, validate = validateCalibration) {
   if (isAbsolute(relativePath)) throw new Error("Use a repository-relative result path.");
   const path = resolve(root, relativePath);
   const local = relative(resolve(root), path);
@@ -208,7 +209,7 @@ export function readReport(root, relativePath) {
   if (real === ".." || real.startsWith(".." + sep)) throw new Error("Report resolves outside the repository.");
   const bytes = readFileSync(path);
   if (bytes.length > MAX_REPORT_BYTES) throw new Error("Report grew beyond its size limit.");
-  const report = validateCalibration(JSON.parse(bytes.toString("utf8")));
+  const report = validate(JSON.parse(bytes.toString("utf8")));
   return { report, path: local.split(sep).join("/"), sha256: sha256Hex(bytes) };
 }
 
@@ -263,6 +264,45 @@ export function calibrationRecords(input, source) {
   ];
 }
 
+export function clueTransferRecords(input, source) {
+  const identity = canonicalSha256({ reportSha256: input.sha256, sourceSha256: source.sha256 });
+  const edition = "edition:clue-transfer-" + input.sha256;
+  const activity = "activity:clue-transfer-" + identity;
+  const assertion = "assertion:clue-transfer-" + identity;
+  const statement = "statement:clue-transfer-v1-comparison";
+  return [
+    record(statement, "statement", {
+      proposition: "The clue-transfer-v1 experiment compares the same deterministic DPLL solver with and without one root preprocessing pass using a frozen mined binary-pair rule library.",
+      domain: "The fixed finite protocol and exact reports cited by each observation; no total-work improvement is asserted by this statement.",
+    }, ["context:research-method"]),
+    record(edition, "edition", { path: input.path, sha256: input.sha256, mediaType: "application/json", report: input.report }),
+    record(activity, "activity", {
+      experiment: input.report.experiment,
+      status: "recorded-observation",
+      source,
+      authority: "Local report ingestion; input claims require independent experimental review.",
+    }, [edition, "inquiry:p-equals-np"]),
+    record(assertion, "assertion", {
+      statement,
+      stance: "bounded-observation",
+      scope: { experiment: input.report.experiment, reportSha256: input.sha256 },
+      formalProofAccepted: false,
+    }, [activity, statement]),
+    record("evidence:clue-transfer-" + identity, "evidence", {
+      assertion,
+      kind: "finite-clue-transfer-comparison-report",
+      reportSha256: input.sha256,
+      frozenLibrarySha256: canonicalSha256(input.report.frozen_library.rules),
+      measuredSummary: input.report.summary,
+      acquisitionWorkUnits: input.report.training.acquisition.work_units,
+      acquisitionPlusTransferWorkUnits: input.report.acquisition_plus_transfer_work_units,
+      limitations: input.report.limitations,
+      interpretation: "Measured costs and outcomes remain observations, including regressions and unknowns; this is not a claim of a general speedup.",
+      formalProofAccepted: false,
+    }, [assertion, edition]),
+  ];
+}
+
 export function recordCalibration(root, relativePath) {
   const input = readReport(root, relativePath);
   const source = sourceManifest(root);
@@ -275,18 +315,37 @@ export function recordCalibration(root, relativePath) {
   } finally { oh.store.close(); }
 }
 
+export function recordClueTransfer(root, relativePath) {
+  const input = readReport(root, relativePath, validateClueTransfer);
+  const protocolPath = resolve(root, "experiments/clue-transfer-protocol.md");
+  const protocolFile = lstatSync(protocolPath);
+  if (!protocolFile.isFile() || protocolFile.isSymbolicLink() || protocolFile.size > MAX_REPORT_BYTES ||
+      sha256Hex(readFileSync(protocolPath)) !== input.report.protocol_sha256) {
+    throw new Error("The local protocol does not match the report's fixed protocol identity.");
+  }
+  const source = sourceManifest(root);
+  const oh = openLedger(root);
+  try {
+    for (const seed of seedRecords()) {
+      if (oh.get(seed.key)?.recordSha256 !== seed.recordSha256) throw new Error("Bootstrap records are missing or changed; inspect before recording.");
+    }
+    return { reportSha256: input.sha256, ...commitAdditive(oh, clueTransferRecords(input, source), "clue-transfer-v1") };
+  } finally { oh.store.close(); }
+}
+
 export async function main(args = process.argv.slice(2)) {
   const [command, input, ...extra] = args;
-  if (extra.length || (command !== "record" && input !== undefined)) throw new Error("Unexpected arguments.");
+  if (extra.length || (!["record", "record-transfer"].includes(command) && input !== undefined)) throw new Error("Unexpected arguments.");
   if (command === "contract") return inspectContract();
   if (command === "init") return initializeLedger(repositoryRoot);
   if (command === "record" && input) return recordCalibration(repositoryRoot, input);
+  if (command === "record-transfer" && input) return recordClueTransfer(repositoryRoot, input);
   if (command === "verify") {
     const oh = openLedger(repositoryRoot);
     try { return { database: ".oh/research.sqlite", space: SPACE, verification: oh.verify() }; }
     finally { oh.store.close(); }
   }
-  throw new Error("Usage: bun scripts/oh-ledger.mjs <contract|init|verify|record relative-report.json>");
+  throw new Error("Usage: bun scripts/oh-ledger.mjs <contract|init|verify|record relative-report.json|record-transfer relative-report.json>");
 }
 
 if (import.meta.main) {

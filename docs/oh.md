@@ -1,98 +1,106 @@
-# Local research ledger
+# Canonical project research ledger
 
-Oh records the investigation's questions, claims, experiment observations, and their dependencies. The local ledger lives at `.oh/research.sqlite` in space `peqnp`. It is ignored by Git. Reviewed experiment JSON and explanatory documents are the public, reproducible record; database operation history remains local.
+Oh is the source of truth for peqnp's research questions, claims, reviewed arguments, experiment observations, and narrative editions. The project versions its complete supported operation bundle in `ledger/operations.json`, with byte identity and replay verification in `ledger/manifest.json`. Other clones reconstruct the same history. The ignored `.oh/research.sqlite` database, space `peqnp`, is the local working materialization.
 
-## Install and initialize
+Research Markdown is a readable, checked view. Authors edit it, review it, and explicitly record new editions before updating the canonical bundle. Code and raw experiment artifacts remain executable evidence; Oh records their identities and interpretation. A valid ledger proves consistent record history, not mathematical truth.
+
+## Restore a clone
 
 Use Bun 1.3.14 and the checked lockfile:
 
 ```sh
 bun install --frozen-lockfile --ignore-scripts
-bun node_modules/@hraness/oh/dist/cli.js version
 bun scripts/oh-ledger.mjs contract
+bun run check:ledger
 bun run oh:init
 bun run oh:verify
 ```
 
-Only `oh:init` may create the selected database. Verification refuses a missing database. Initialization commits six seed records atomically: the research context, open inquiry, P = NP proposition and hypothesis stance, and the unit-propagation proposition and calibration target. It asserts no new mathematical result.
+`check:ledger` verifies the tracked bundle and manifest, replays every operation in a disposable database, and checks current narrative and report files against their latest canonical editions. It does not create or depend on `.oh`.
 
-Rerunning initialization is an exact-content no-op. If an existing seed has different content, initialization refuses the batch and leaves the existing records intact. It never overwrites, repairs, deletes, imports, or syncs a store.
+`oh:init` restores the tracked history; `bun run oh:restore` is the explicit equivalent. Restore validates the entire bundle before opening or creating the selected database. It never creates independent seed operations. Repeating an identical restore is a no-op. An exact local prefix can advance atomically. A compatible newer local history is preserved and reported as `local-ahead`: those additional operations have not been published in the tracked bundle. Divergent histories fail without changing the destination. Preserve both histories for explicit reconciliation.
 
-## Record a calibration result
+The internal `initializeLedger` function is retained for isolated tests and the original bootstrap history. It is not the new-clone workflow. Recreating seeds would produce different operation timestamps and therefore a different history, even if record values matched.
 
-After running the Rust experiment, record its default artifact:
+## Record experiments and reviewed research
+
+After generating and independently reviewing an experiment artifact, record the relevant observation:
 
 ```sh
-cargo run --locked --release -- experiment artifacts/calibration.json
 bun run oh:record
-bun run oh:verify
-```
-
-An alternative result must be a repository-relative JSON file:
-
-```sh
-bun scripts/oh-ledger.mjs record experiments/calibration.json
-```
-
-The `record` command accepts only the bounded `unit-propagation-calibration-v1` envelope. It validates the declared two-variable corpus, eight distinct candidate programs, coverage counters, selected survivor, rejected false-completeness control, and explicit absence of a kernel-checked proof. It records the exact file SHA-256, JSON payload, source-file hashes observed at ingestion, and a `bounded-tested` assertion with supporting evidence.
-
-Validation of a report's shape does not independently reproduce its observations. Source hashes describe the files at ingestion; they do not attest that those files generated the supplied report. The experiment and independent checker own that evidence. The ledger neither upgrades a finite test to a general proof nor interprets an informal argument as a formal proof receipt.
-
-Each report/source identity gets an additive activity, assertion, and evidence record. Reingesting identical bytes at the same relative path with identical source hashes is a no-op. The content edition retains its first path; copying identical bytes to another path causes an explicit conflict, not a provenance rewrite. A later source snapshot produces a distinct observation; it does not rewrite the old result.
-
-## Record a clue-transfer comparison
-
-After producing and independently reviewing the [clue-transfer report](../artifacts/clue-transfer.json), record it in the same local ledger:
-
-```sh
 bun run oh:record:transfer
+bun run oh:record:research
 bun run oh:verify
 ```
 
-For an alternative repository-relative report path, use `bun scripts/oh-ledger.mjs record-transfer relative-report.json`. Initialization remains an explicit prerequisite.
+`oh:record` ingests `artifacts/calibration.json`; `oh:record:transfer` ingests `artifacts/clue-transfer.json`. Run the command for the observation being added. An explicit alternative repository-relative path is accepted by `bun scripts/oh-ledger.mjs record relative-report.json` or `record-transfer relative-report.json`, but the current publication profile admits only the two named artifact paths. Extend the reviewed profile before publishing another experiment.
 
-This command accepts the fixed `clue-transfer-v1` protocol: 24 implication candidates on the six training pairs, four frozen rule records, and all 122 named evaluation cases with at most 12 declared variables. It checks the complete two-variable mining conclusions, the declared one-million-event budget for each arm, valid finite inputs and outcomes, event-category sums, reference-coverage counters, and aggregate/family totals recomputed from each observation. It also verifies the report's protocol digest against the checked-in protocol bytes. Shape and arithmetic checks do not establish that the submitted inputs were generated as declared or that measured costs and labels were produced by the reported source; the independent experiment validation owns those claims.
+The calibration validator requires the two-variable, eight-program contract, complete coverage counters, selected survivor, rejected false-completeness control, and absence of a kernel proof. Transfer validation requires the fixed protocol, all 24 mining candidates and four accepted rules, 122 named evaluation cases, shared one-million-event budgets, valid finite outcomes, category sums, and consistent case/family/aggregate totals. It checks the report's protocol digest against the protocol bytes. It independently checks the tiny mining truth table, but does not reproduce held-out generation, labels, or measured solver costs. The experiment checks own those claims.
 
-The first ingestion adds five records: a comparison proposition, an exact report edition, a source-observation activity, a `bounded-observation` assertion, and evidence. The evidence includes the canonical SHA-256 of the frozen rule array, numeric summary, acquisition cost, and acquisition-plus-online cost. The proposition describes the finite comparison and asserts no performance improvement. Negative results and resource exhaustion retain their reported meaning; no formal proof is accepted. Repeated ingestion follows the same identity and conflict rules as the calibration command.
+The transfer observation preserves the negative result: its assertion is `bounded-observation`, and its comparison proposition asserts no performance improvement. Evidence includes the frozen rule array's canonical SHA-256, numeric summary, and acquisition/online costs. Source hashes describe files observed at ingestion; they are not an attestation that those files generated the supplied report.
 
-This workflow only writes `.oh/research.sqlite`. The live database and operation history remain local and ignored; no export or public ledger snapshot is part of these commands.
+`oh:record:research` adds the reviewed definitions in `scripts/research-records.mjs`: signed-renaming soundness, the finite total-cost lesson, the longer binary-backbone family, the conditional strong-backdoor result, and the next inquiry. Their linked statement, assertion, and evidence records contain proof steps, assumptions, citations, limitations, and explicit informal or bounded status. Ingestion requires the full admitted history and the exact existing transfer edition/evidence dependency. Later source changes cannot silently retarget those arguments. Append versioned definitions when changing a reviewed argument or its evidence, and retain prior seed, experiment, and research constructors: historical operations must remain admissible and replayable.
 
-## Inspect the record
+Each observation/source identity gets additive records. Reingesting identical report bytes at the same path with identical source hashes is a no-op. Equal bytes at another path conflict with the original edition rather than rewriting provenance. Existing records cannot be replaced through these commands.
+
+## Record narrative editions and publish the history
+
+The fixed narrative set is the research proposal, knowledge framework, clue-transfer theory, two experiment reports, and frozen clue-transfer protocol. After reviewing edits to those six files:
+
+```sh
+bun run oh:record:docs
+bun run oh:export
+bun run check:ledger
+bun run check
+```
+
+`oh:record:docs` records each Markdown body and its SHA-256, plus a versioned canonical-document registry. Unchanged current content is a no-op. Each changed registry references its predecessor; reverting from document A to B and back to A activates the old A edition through a new registry without erasing B.
+
+`oh:export` verifies the local operation history, reconstructs every historical record through the reviewed project constructors, checks current document/report parity, and requires the existing bundle to be an exact prefix. A matching profile label alone cannot admit an unrelated record. Every newly exported document edition must match the current Markdown unless it already appears in the existing local bundle. An intermediate edition that differs from the current files and is absent from that prior bundle is rejected. This is a content-consistency rule, not a detector of private information. An existing local export is not automatically reviewed or published. Preserve refused state and obtain a separate explicit review of its publication scope; these commands do not purge or rewrite it.
+
+Review the entire new operation suffix, including historical values, before committing the updated bundle and manifest through the repository's normal review and CI workflow. Put private source material and unrelated notes in a different store. Never put credentials, personal documents, or absolute local paths into this project history. SQLite, WAL, and SHM files remain ignored and are not committed.
+
+Each output file is replaced atomically, but the bundle/manifest pair is not a filesystem transaction. A crash between replacements creates a detectable mismatch. Preserve the files and database, inspect the interrupted operation, and recover a known reviewed pair; verification never resets or silently repairs state.
+
+## Inspect canonical records locally
+
+After restoring the ledger:
 
 ```sh
 bun node_modules/@hraness/oh/dist/cli.js get inquiry:p-equals-np --db .oh/research.sqlite --space peqnp
-bun node_modules/@hraness/oh/dist/cli.js list --kind evidence --limit 20 --db .oh/research.sqlite --space peqnp
-bun node_modules/@hraness/oh/dist/cli.js search "unit propagation" --mode keyword --limit 10 --db .oh/research.sqlite --space peqnp
+bun node_modules/@hraness/oh/dist/cli.js list --kind evidence --limit 30 --db .oh/research.sqlite --space peqnp
+bun node_modules/@hraness/oh/dist/cli.js search "clue transfer" --mode keyword --limit 10 --db .oh/research.sqlite --space peqnp
 ```
 
-Inspect the database's existence before raw CLI reads because Oh's generic CLI opens a missing database as part of normal operation. The adapter's `verify` command makes this check itself.
+Confirm the database exists before raw CLI reads: Oh's generic CLI initializes a missing database. The adapter's verification command refuses missing state.
 
-## Pinned contract and write boundary
+## Pinned contract and supported replication boundary
 
-The dependency is the [immutable Oh v0.4.3 Release](https://github.com/hraness/oh/releases/tag/v0.4.3), published 7 September 2026. The canonical release tarball is pinned directly in `package.json` and `bun.lock`. Its SHA-256 is:
+The dependency is the [immutable Oh v0.4.3 Release](https://github.com/hraness/oh/releases/tag/v0.4.3), published 7 September 2026. `package.json` and `bun.lock` pin its canonical release tarball. Release checksum and GitHub asset digest agree:
 
 ```text
 4153298fad814910c28708d07ff13afa467adeb80012c8841598c809982a3a8e
 ```
 
-The release's `SHA256SUMS` and GitHub asset digest agree. Runtime qualification reports CLI version `0.4.3`, contract `oh.ontology.v1`, and contract digest:
+The adapter checks compiled contract `oh.ontology.v1` and digest:
 
 ```text
 e53ae573c2af417082be9f554d0f6f3e317f054daf745181f462608e3f622594
 ```
 
-The packaged skill still names v0.4.2 in its installation paragraph. This integration uses the separately verified immutable v0.4.3 artifact and checks its compiled contract before opening the ledger.
+It uses the supported SDK graph envelope with application profile `peqnp.research-ledger.v1`. Values are detached through canonical JSON so SDK indexing and replay agree on property order; supplying unsorted object keys directly to this release can cause a search-document replay mismatch.
 
-The adapter uses Oh's supported SDK graph envelope and an explicit application profile, `peqnp.research-ledger.v1`; it does not claim the application values are native ontology-codec objects. It detaches values through canonical JSON before commit. This also keeps SDK keyword indexing and replay on the same property order: qualification found that supplying unsorted object keys directly to this release can produce a search-document replay mismatch.
+Writes verify replay, inspect conflicts, and commit against the reviewed head. Document activation and research admission also bind their earlier inspection head. Stale-head conflicts fail without a retry loop adopting another writer's state.
 
-Every write batch verifies replay, captures the exact current generation and operation digest, checks for conflicting records, and commits with compare-and-swap. Stale-head conflicts fail; there is no retry loop that silently adopts another writer's state. Replay verification runs again after the batch. Treat a verification failure as evidence to investigate, preserving the database.
+Export uses `store.exportOperations` and `createOhSyncBundleV1`, requires complete genesis-to-head coverage, and independently replays the result. The bounded adapter refuses more than 1,000 operations or an 8 MiB output; it never silently truncates. A larger history needs reviewed pagination. Restore uses `store.importOperations({ expectedHead, operations })`, which validates and imports the bounded interval atomically in pinned v0.4.3. The native CLI uses this same atomic method in this release, while its export can return a largest-fitting prefix. The packaged skill's v0.4.2 installation paragraph and sequential-import warning are stale for this qualified runtime.
 
-Remote sync, imports, tombstones, hosted embeddings, and publishing operation bundles are outside this adapter. No credentials or private source documents belong in the public research artifacts.
+Hosted sync, imports from another authority, tombstones, hosted embeddings, and provisioning remain outside this workflow. Git transports the reviewed project history; no additional service or credentials are required.
 
 ## Focused checks
 
 ```sh
 bun run check:oh
+bun run check:ledger
 ```
 
-Tests cover non-creating reads, repeatable bootstrap, atomic rejection of conflicting records, both bounded report contracts, summary and cost consistency, idempotent ingestion, proof-status preservation, protocol identity, and path boundaries. Test databases are disposable and never constitute research evidence.
+Tests cover the experiment contracts and additive writes, fresh-clone exact replay, idempotence, prefix and divergent histories, tampering, missing/partial manifests, path guards, document updates/reverts, and rejection of unrelated or hidden intermediate records. Test databases are disposable and never constitute research evidence. The final repository gate separately reproduces the experiment artifacts.

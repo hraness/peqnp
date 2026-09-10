@@ -5,7 +5,8 @@
 - `tests/` contains independent references and regression evidence.
 - `experiments/` contains reviewed reproducible experiment results and their interpretation.
 - `scripts/` contains the Oh adapter and repository validation commands.
-- `.oh/` is ignored local research state; it is never public source.
+- `ledger/` contains the canonical, Git-versioned Oh research records and their integrity manifest.
+- `.oh/` is the ignored local SQLite materialization; restore it from the committed ledger.
 - `.github/workflows/` defines the matching continuous integration gate.
 
 # Guidelines
@@ -18,8 +19,10 @@
 - E-graph equality requires equivalence in every allowed context. Keep whole-formula equisatisfiable reductions directed with explicit preconditions.
 - Give each experiment a precise claim, fixed grammar/domain, independent reference, reproducible seed or enumeration, input/output and source identity, resource limits, and a clearly stated interpretation. Preserve counterexamples. Compare search methods under equal budgets before claiming an evolutionary advantage.
 - Review candidate-language, evaluator, reference-oracle, and scoring changes independently. Do not let a candidate modify its checker or hide a changed specification. General proofs require statement, assumption, completeness, termination, and cost review.
-- Use the pinned Oh dependency and its packaged Agent Skill for store operations. This repository authorizes local bootstrap at `.oh/research.sqlite`, space `peqnp`, and additive research records through the documented adapter. Inspect the compiled contract and verify replay before and after writes; require generation-checked mutations and explicit conflict handling. Read `docs/oh.md` for exact commands.
-- Never delete or reset an Oh database to repair a conflict. Do not write SQLite tables directly. Remote sync, imports from another authority, tombstones, hosted embeddings, and new service provisioning require explicit task scope. Do not commit databases, private source material, credentials, or operation exports.
+- Oh in this repository is the source of truth for research claims, evidence, reviewed arguments, and open questions. Record new learning here; do not write or mirror this project's research into Jungle KB. Repository Markdown is the readable layer, and reviewed experiment artifacts supply reproducible evidence. Keep the research documents synchronized with their recorded Oh editions through the documented workflow.
+- For routine research, query specific Oh records or use bounded search. Read the manifest for the current history identity; reserve full operation-bundle reads for publication and integrity review.
+- Use the pinned Oh dependency and its packaged Agent Skill for store operations. This repository authorizes restoring its committed ledger into `.oh/research.sqlite`, space `peqnp`, additive research records, and publication of reviewed project-only operation bundles through the documented adapter. Inspect the compiled contract and verify replay before and after writes; require generation-checked mutations and explicit conflict handling. Read `docs/oh.md` for exact commands.
+- Never delete or reset an Oh database to repair a conflict. Do not write SQLite tables directly. Preserve the committed operation history as an exact prefix when publishing additions, and reject divergent histories. Review every exported historical value, not just current records, for project scope and public suitability. Never commit SQLite databases, private source material, or credentials. Remote sync, imports from another authority, tombstones, hosted embeddings, and new service provisioning require explicit task scope.
 - Oh verifies record custody and consistency. Its records, confidence values, and derivation traces do not establish mathematical truth. Record bounded experiment output as observations, never as a formal proof receipt.
 - Use the repository-pinned Rust toolchain and Bun 1.3.14. Keep the Rust core dependency-free unless a measured need justifies a library. Pin Oh to a verified immutable release artifact and preserve both lockfiles.
 - For every documentation surface, follow the [Hraness documentation guidelines](https://github.com/hraness/.github/blob/main/DOCUMENTATION_GUIDELINES.md): focus each page on learning, task completion, reference, or explanation, and verify prerequisites, capabilities, effects, and a complete path to the result. Keep the [README guidelines](https://github.com/hraness/.github/blob/main/README_GUIDELINES.md) as the public front-door contract.

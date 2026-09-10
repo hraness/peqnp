@@ -1,0 +1,26 @@
+{
+  "schema": "peqnp.public-ledger.v1",
+  "space": "peqnp",
+  "ohVersion": "0.4.3",
+  "contractSha256": "e53ae573c2af417082be9f554d0f6f3e317f054daf745181f462608e3f622594",
+  "bundle": {
+    "path": "ledger/operations.json",
+    "sha256": "08c52f1c24124b848a12fe9ef70b430661b7b7d28425eee1411466eaf013b507",
+    "bundleSha256": "a5e095684a5dca5f9a870a94f1016f2764ba49e91dc97ac332c0780b177fe7ba"
+  },
+  "verification": {
+    "head": {
+      "generation": 5,
+      "graphRevisionSha256": "df6ee8e17d4a9abbde832f59a4e53a66f9df4caf17ebea249782a930e54f55f3",
+      "operationSha256": "a826190be2b4cbb50920deb43c91676dcc7095219355596104c3fd916b30a9f2",
+      "recordsSha256": "fa3be6a8a326d960d208d30bcf350da14097fdda59659a701c876e89756b094f",
+      "sequence": 5,
+      "v": 1
+    },
+    "operations": 5,
+    "records": 35,
+    "sqliteIntegrity": "ok",
+    "v": 1
+  },
+  "interpretation": "Replay verifies record history and integrity, not mathematical truth or experimental provenance."
+}

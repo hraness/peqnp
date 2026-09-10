@@ -32,7 +32,7 @@ This is a familiar resolution inference, rediscovered through finite model analy
 
 ## Why transfer is sound
 
-**Renaming lemma.** Let a finite clause set P entail a literal l. Map each variable of P to a signed literal on a distinct target variable, preserving complementation: σ(not v)=not σ(v). If a CNF F contains every clause of σ(P), then F entails σ(l).
+**Renaming lemma.** Let a finite clause set P entail a literal l. Map each variable occurring in P or l to a signed literal on a distinct target variable, preserving complementation: σ(not v)=not σ(v). If a CNF F contains every clause of σ(P), then F entails σ(l).
 
 **Proof.** Any satisfying assignment of F satisfies σ(P). Pulling its values back through the signed injective map gives an assignment satisfying P, hence l. The original assignment therefore satisfies σ(l). This argument applies regardless of extra clauses and variables in F. If F is unsatisfiable, entailment still holds, but do not describe its literals as empirical backbones of a nonempty solution space.
 
@@ -96,6 +96,6 @@ The following deduction is outside the frozen 122-case protocol. For k≥2 and d
 F_k=(x\lor y_1)\land\bigwedge_{i=1}^{k-1}(\neg y_i\lor y_{i+1})\land(\neg y_k\lor x).
 \]
 
-This satisfiable 2-CNF has k+1 clauses and forces x: setting x=false propagates y_1 through y_k to true, contradicting the last clause. Every proper clause subset allows x=false. If the first or last clause is removed, choose all y values false or true respectively; if an internal link i is removed, choose y_1 through y_i true and the remaining y values false. These witnesses also satisfy any smaller subset. Thus all k+1 clauses are needed to entail x, and the two-clause library cannot initiate an inference.
+This satisfiable 2-CNF has k+1 clauses and forces x: setting x=false propagates y_1 through y_k to true, contradicting the last clause. Every proper clause subset allows x=false. If the first or last clause is removed, choose all y values false or true respectively; if an internal link i is removed, choose y_1 through y_i true and the remaining y values false. These witnesses also satisfy any smaller subset. Thus all k+1 clauses are needed to entail x. With x=true, both the all-false and all-true y assignments satisfy F_k, so no y literal is entailed by F_k or any subset of its clauses. No two-clause subset can entail any unit, and the two-clause library cannot initiate an inference.
 
 The implication path not x→y_1→…→y_k→x exposes the missing clue. A future experiment can compare binary implication reachability or binary-clause derivation against the tiny unit-only library. General 2-SAT already has a linear-time implication-graph algorithm using strongly connected components; applying it to F_k together with not x also certifies the forced value. [Aspvall, Plass, and Tarjan](https://doi.org/10.1016/0020-0190(79)90002-4) This is a limit of our chosen explanation size, not hardness of the underlying family. Keep an established polynomial 2-SAT solver as the relevant future baseline.

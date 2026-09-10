@@ -65,7 +65,7 @@ export function openLedger(root, { initialize = false } = {}) {
   } finally { process.umask(previousMask); }
 }
 
-function record(key, kind, value, dependencies = []) {
+export function record(key, kind, value, dependencies = []) {
   return createKnowledgeGraphRecordV1({
     v: 1, key, kind, dependencies: [...dependencies].sort(),
     // Keep SDK indexing and replay on the same detached canonical property order.
@@ -104,8 +104,11 @@ export function seedRecords() {
   ];
 }
 
-export function commitAdditive(oh, records, purpose) {
+export function commitAdditive(oh, records, purpose, expectedHead) {
   const verified = oh.verify();
+  if (expectedHead && canonicalJson(expectedHead) !== canonicalJson(verified.head)) {
+    throw new Error("Ledger changed after the reviewed snapshot; inspect before retrying.");
+  }
   const changes = [];
   for (const proposed of records) {
     const current = oh.get(proposed.key);
@@ -337,7 +340,10 @@ export async function main(args = process.argv.slice(2)) {
   const [command, input, ...extra] = args;
   if (extra.length || (!["record", "record-transfer"].includes(command) && input !== undefined)) throw new Error("Unexpected arguments.");
   if (command === "contract") return inspectContract();
-  if (command === "init") return initializeLedger(repositoryRoot);
+  if (command === "init") {
+    const { restoreSnapshot } = await import("./oh-snapshot.mjs");
+    return restoreSnapshot(repositoryRoot);
+  }
   if (command === "record" && input) return recordCalibration(repositoryRoot, input);
   if (command === "record-transfer" && input) return recordClueTransfer(repositoryRoot, input);
   if (command === "verify") {

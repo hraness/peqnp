@@ -64,6 +64,21 @@ test("existing conflicting records abort an additive batch without partial write
   } finally { oh.store.close(); }
 });
 
+test("a stale inspected head cannot silently adopt an intervening writer", () => {
+  const path = root();
+  initializeLedger(path);
+  const oh = openLedger(path);
+  try {
+    const inspected = oh.verify().head;
+    const first = createKnowledgeGraphRecordV1({ v: 1, key: "context:first-writer", kind: "context", dependencies: [], value: {} });
+    const second = createKnowledgeGraphRecordV1({ v: 1, key: "context:stale-writer", kind: "context", dependencies: [], value: {} });
+    const current = commitAdditive(oh, [first], "intervening-test").verification;
+    expect(() => commitAdditive(oh, [second], "stale-test", inspected)).toThrow("reviewed snapshot");
+    expect(oh.get(second.key)).toBeNull();
+    expect(oh.verify()).toEqual(current);
+  } finally { oh.store.close(); }
+});
+
 test("contract/domain validation rejects proof escalation and incomplete experimental coverage", () => {
   const forged = report();
   forged.status = "proved-generally";

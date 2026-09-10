@@ -27,16 +27,14 @@ It recovers known unit propagation and rejects a planted claim that this rule al
 
 The [clue-transfer experiment](experiments/clue-transfer.md) mines four sound rule instances from six tiny formulas and freezes them before testing 122 larger cases. They produce 127 clues and reduce search nodes from 738 to 620, but total measured work grows from 424,997 to 1,676,645 because matching is expensive. Every case is solved correctly; this implementation is slower by the declared event metric on every case. These are finite research results, not a polynomial SAT solver. `bun run check` checks Rust and ledger behavior and reproduces both artifacts byte for byte.
 
-To preserve the result in [Oh](https://github.com/hraness/oh):
+Restore the canonical [Oh](https://github.com/hraness/oh) research ledger after cloning:
 
 ```sh
 bun run oh:init
-bun run oh:record
-bun run oh:record:transfer
 bun run oh:verify
 ```
 
-This creates an ignored local ledger at `.oh/research.sqlite`. Its records distinguish hypotheses and bounded observations; replay integrity does not establish mathematical truth. See [ledger operation](docs/oh.md).
+The Git-versioned [ledger](ledger/manifest.json) is the source of truth for research claims, evidence, reviewed arguments, and open questions. Each clone rebuilds its ignored `.oh/research.sqlite` from the same operation history. Research Markdown is the readable layer, checked against recorded document editions. Its records distinguish hypotheses and bounded observations; replay integrity does not establish mathematical truth. See [ledger operation](docs/oh.md) to add and publish new learning.
 
 ## Research approach
 

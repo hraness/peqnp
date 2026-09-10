@@ -2,7 +2,10 @@
 /node_modules/
 /.oh/
 /.work/
+artifacts/*-timing.json
+ledger/.stage/
 .DS_Store
 .env
 .env.*
 !.env.example
+tests/oracle/*-timing.json

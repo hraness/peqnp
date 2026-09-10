@@ -1,24 +1,62 @@
 {
-  "schema": "peqnp.public-ledger.v1",
+  "schema": "peqnp.public-ledger.v2",
   "space": "peqnp",
   "ohVersion": "0.4.3",
   "contractSha256": "e53ae573c2af417082be9f554d0f6f3e317f054daf745181f462608e3f622594",
-  "bundle": {
-    "path": "ledger/operations.json",
-    "sha256": "1bd98fce3066ee41ac227980f46c398731903be45d38d8a48ccb03a10e06d709",
-    "bundleSha256": "c8df1cf75bf00f776853a1271b68183be51e6aa04a375c7fa84afc49b1dc41af"
+  "layout": {
+    "pageSoftBytes": 4194304,
+    "pageHardBytes": 8388608,
+    "serialization": "json-indent-2-newline"
   },
+  "pages": [
+    {
+      "path": "ledger/pages/0001.json",
+      "sha256": "60c7bbd2cadf0a51bc5194f26d9dd248df39ea1ca75ee92742132bfe882e2e28",
+      "bundleSha256": "6f88512d8f9ea60f89a3a389d06ead8695daa621ad9aafffe3ec26da06bfb5b0",
+      "firstSequence": 1,
+      "lastSequence": 10,
+      "lastOperationSha256": "33ae587a086a3837e29d48e43ee67f220458383041267a828f74d056176044db",
+      "bytes": 3886493
+    },
+    {
+      "path": "ledger/pages/0002.json",
+      "sha256": "992b67e74c262f202c0c9695af96ee79a4370d0f92b3495a95cfdb7ef1a5c426",
+      "bundleSha256": "a7bde694062b914a02128a2e4e5acbc60a52e698ab5bfe266384c257c0c445a6",
+      "firstSequence": 11,
+      "lastSequence": 14,
+      "lastOperationSha256": "fe9a5924028574bfa0b74995574dc5321d2e93c0d2865812e95275b7a97b6396",
+      "bytes": 2449286
+    },
+    {
+      "path": "ledger/pages/0003.json",
+      "sha256": "a32e7e4351c73d8f3388d1eb2a2c115d64c3ff508c1abc3b977901b31a436a57",
+      "bundleSha256": "27e0565d0a67d9c3c43e12c41d765e8938e60717ffffaba2e3678aba086db2fd",
+      "firstSequence": 15,
+      "lastSequence": 15,
+      "lastOperationSha256": "b7690050591d416d0a3600f16709b0533a0d8c10652664cbf07b0af5ba661be8",
+      "bytes": 7030203
+    },
+    {
+      "path": "ledger/pages/0004.json",
+      "sha256": "f47a9860251aa0d776f2e6fd23d1f633a4821ffebb8bfa44918dc9cd2ed64662",
+      "bundleSha256": "99f8bea77a00c98992ac4b81009e65e84554581ccc67179834de8920c8f66191",
+      "firstSequence": 16,
+      "lastSequence": 18,
+      "lastOperationSha256": "79a750e8ce70349bc4cf456ea5f1d7b45a1368d2f23aa4fd5a904804c52797f1",
+      "bytes": 156833
+    }
+  ],
   "verification": {
     "head": {
-      "generation": 17,
-      "graphRevisionSha256": "a73dec56d3d6aa0ebf11b40ab389843269fbe19a09f72830df35d67a13799bb4",
-      "operationSha256": "6baf3e9c83d597b458263b550ca8d3ffa77e724f51a1475d525e573f4b5f83bb",
-      "recordsSha256": "f1c52352843d35070b9619476cbf76ddca92428a2e0aa0d7a9f5b60e6887674e",
-      "sequence": 17,
+      "generation": 18,
+      "graphRevisionSha256": "80d97171531e484d2389ecf70fd381406a1e40a617da441ab74f7cc31c539720",
+      "operationSha256": "79a750e8ce70349bc4cf456ea5f1d7b45a1368d2f23aa4fd5a904804c52797f1",
+      "recordsSha256": "d49fa79209268a0440a27843b69e99abaa41467ec72482397104eb6cd84feec9",
+      "sequence": 18,
       "v": 1
     },
-    "operations": 17,
-    "records": 105,
+    "operations": 18,
+    "records": 108,
     "sqliteIntegrity": "ok",
     "v": 1
   },

@@ -25,7 +25,7 @@ function root() {
 afterEach(() => { for (const path of roots.splice(0)) rmSync(path, { recursive: true, force: true }); });
 
 test("the original five operations and 35 records remain admissible and replay to their exact head", () => {
-  const operations = JSON.parse(readFileSync(new URL("../ledger/operations.json", import.meta.url))).operations.slice(0, 5);
+  const operations = JSON.parse(readFileSync(new URL("../ledger/pages/0001.json", import.meta.url))).operations.slice(0, 5);
   expect(operations.length).toBe(5);
   expect(operations.at(-1).operationSha256).toBe("a826190be2b4cbb50920deb43c91676dcc7095219355596104c3fd916b30a9f2");
   expect(admitPublicHistory(repositoryRoot, operations, { requireCurrentDocuments: false }).records).toBe(35);

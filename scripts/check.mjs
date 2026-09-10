@@ -37,6 +37,7 @@ run("cargo", ["fmt", "--all", "--", "--check"]);
 run("cargo", ["clippy", "--locked", "--all-targets", "--", "-D", "warnings"]);
 run("cargo", ["test", "--locked"]);
 run("bun", ["run", "check:oh"]);
+run("bun", ["run", "check:ledger"]);
 
 const transfer = JSON.parse(readFileSync(resolve(root, "artifacts/clue-transfer.json"), "utf8"));
 const protocolHash = createHash("sha256")
@@ -62,4 +63,4 @@ try {
 }
 run("git", ["diff", "--check"]);
 run("git", ["diff", "--cached", "--check"]);
-console.log("All checks passed; both experiments reproduced byte for byte.");
+console.log("All checks passed; the canonical ledger replayed and both experiments reproduced byte for byte.");

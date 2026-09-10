@@ -8,8 +8,13 @@
     "oh:init": "bun scripts/oh-ledger.mjs init",
     "oh:verify": "bun scripts/oh-ledger.mjs verify",
     "oh:record": "bun scripts/oh-ledger.mjs record artifacts/calibration.json",
-    "check:oh": "bun test scripts/oh-ledger.test.mjs scripts/oh-transfer-report.test.mjs",
-    "oh:record:transfer": "bun scripts/oh-ledger.mjs record-transfer artifacts/clue-transfer.json"
+    "check:oh": "bun test scripts/oh-ledger.test.mjs scripts/oh-transfer-report.test.mjs scripts/oh-snapshot.test.mjs",
+    "oh:record:transfer": "bun scripts/oh-ledger.mjs record-transfer artifacts/clue-transfer.json",
+    "oh:export": "bun scripts/oh-snapshot.mjs export",
+    "oh:restore": "bun scripts/oh-snapshot.mjs restore",
+    "oh:record:research": "bun scripts/oh-research.mjs research",
+    "oh:record:docs": "bun scripts/oh-research.mjs docs",
+    "check:ledger": "bun scripts/oh-snapshot.mjs check"
   },
   "dependencies": {
     "@hraness/oh": "https://github.com/hraness/oh/releases/download/v0.4.3/hraness-oh-0.4.3.tgz"

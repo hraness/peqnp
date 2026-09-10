@@ -13,7 +13,7 @@ cargo run --locked --release -- transfer artifacts/clue-transfer.json
 bun run check
 ```
 
-The final check verifies the protocol hash and reproduces both experiment artifacts byte for byte. To record this observation in the local Oh ledger, after `bun run oh:init`, run `bun run oh:record:transfer` and `bun run oh:verify`. The ledger remains local and ignored by Git.
+The final check verifies the protocol hash and reproduces both experiment artifacts byte for byte. The observation and its interpretation are recorded in the repository's canonical Oh ledger. Run `bun run oh:init` to restore its committed operation history locally, then `bun run oh:verify`. Follow the [ledger workflow](../docs/oh.md) to record and publish an additional reviewed observation.
 
 ## What was learned
 

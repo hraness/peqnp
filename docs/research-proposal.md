@@ -157,7 +157,7 @@ Oh's integrity checks establish custody and consistency of records under its con
 
 Oh's finite positive-rule projections may also help with bounded dependency queries. If a research island explores Datalog as a SAT language, polynomial closure alone is insufficient: it must establish a lossless polynomial-size encoding, all-instance correctness, and bounds on relation arity, rule width, generated domains, and total materialization. The cost cannot be hidden in the translation. [Oh projection specification](https://github.com/hraness/oh/blob/main/spec/v1/projection.md)
 
-Keep repository Markdown as the maintained readable layer: the proposal, source-backed lessons, accepted definitions, rejected approaches, and current open obligations. Add Oh only when concurrent experiment state and provenance justify the integration; a first pilot can use structured local artifacts and Markdown notes. If adopted, pin and inspect the installed Oh contract and preserve the explicit record schema rather than relying on whatever a website labels latest.
+Oh in peqnp is the canonical research record. Its reviewed, Git-versioned operation history carries the project's claims, evidence, arguments, and open questions into each clone; the local SQLite database is a replayed materialization. Repository Markdown remains the readable layer for the proposal, lessons, definitions, rejected approaches, and open obligations, synchronized with recorded document editions. Record new learning in this ledger. Follow the [ledger workflow](oh.md), preserve the pinned contract and explicit record schema, and review the complete exported history before publication.
 
 ## Decision
 

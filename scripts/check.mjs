@@ -81,7 +81,15 @@ const oracleSkip = oracleSkipMessage(oracle);
 if (oracleSkip && process.env.PEQNP_REQUIRE_ORACLE === "1") throw new Error(oracleSkip);
 if (oracleSkip) console.log(oracleSkip);
 if (oracle.state === "present") run("cargo", ["test", "--locked", "--", "--ignored"]);
-run("bun", ["run", "check:oh"]);
+// CI runs the slow snapshot suite (scripts/oh-snapshot.test.mjs) in its own
+// parallel job and sets PEQNP_SNAPSHOT_TESTS_SEPARATE=1 here; locally the
+// gate always runs the full Oh suite.
+if (process.env.PEQNP_SNAPSHOT_TESTS_SEPARATE === "1") {
+  console.log("oh-snapshot tests run in a separate CI job (check:oh:snapshot)");
+  run("bun", ["run", "check:oh:core"]);
+} else {
+  run("bun", ["run", "check:oh"]);
+}
 run("bun", ["run", "check:ledger"]);
 
 const PROTOCOLS = [

@@ -13,6 +13,14 @@ git clone https://github.com/hraness/peqnp.git
 cd peqnp
 bun install --frozen-lockfile --ignore-scripts
 cargo run --locked --release -- experiment artifacts/calibration.json
+```
+
+Expect `Checked 8 candidates × 65536 formulas; unique survivor:` followed by the
+unit-propagation rule, then `Wrote artifacts/calibration.json`. The command
+replaces that output file; use a different output path to preserve a local result.
+Inspect the calibration result below before running the remaining experiments:
+
+```sh
 cargo run --locked --release -- transfer artifacts/clue-transfer.json
 cargo run --locked --release -- indexed artifacts/indexed-transfer.json
 cargo run --locked --release -- implication artifacts/implication-calibration.json

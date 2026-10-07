@@ -4,4 +4,4 @@ The candidate evaluator runs the project's restricted language. It does not exec
 
 Keep `.oh/`, private datasets, and credentials out of Git. Oh's replay verification checks record integrity, not the truth of a mathematical claim. Do not publish raw private research records as part of a bug report.
 
-Report vulnerabilities through [GitHub private vulnerability reporting](https://github.com/hraness/peqnp/security/advisories/new). Include a minimal reproducer without secrets. For ordinary correctness problems, open an issue with the failing input and expected behavior.
+Report vulnerabilities through [GitHub private vulnerability reporting](https://github.com/hraness/peqnp/security/advisories/new). Include a minimal reproducer without secrets. If GitHub reporting is unavailable, email [hraness@pm.me](mailto:hraness@pm.me). For ordinary correctness problems, open an issue with the failing input and expected behavior.
